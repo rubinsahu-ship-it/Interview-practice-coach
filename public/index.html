@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interview Practice Coach</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,650&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <p class="eyebrow">One question. Typed answer. Rubric feedback.</p>
+        <h1>Interview Practice Coach</h1>
+        <p class="lede">
+          Pick a role, answer one question, and get coaching on clarity,
+          structure, relevance, and examples. No hiring score.
+        </p>
+      </header>
+
+      <main>
+        <section class="card" aria-labelledby="role-heading">
+          <h2 id="role-heading">1. Choose a job role</h2>
+          <label for="role">Role</label>
+          <select id="role">
+            <option value="">Select a role</option>
+            <option>Software Engineer</option>
+            <option>Product Manager</option>
+            <option>Data Analyst</option>
+            <option>UX Designer</option>
+            <option>Marketing Manager</option>
+            <option>Customer Success Manager</option>
+            <option value="custom">Other (type below)</option>
+          </select>
+          <label for="custom-role" class="hidden" id="custom-role-label">Custom role</label>
+          <input
+            id="custom-role"
+            class="hidden"
+            type="text"
+            placeholder="e.g. Cloud Security Engineer, Healthcare"
+            autocomplete="off"
+          />
+          <button id="ask-btn" type="button">Ask me a question</button>
+        </section>
+
+        <section class="card" id="question-card" hidden>
+          <div class="card-header">
+            <h2>2. Answer the question</h2>
+            <span class="role-badge" id="active-role-badge"></span>
+          </div>
+          <p class="question" id="question"></p>
+
+          <div class="rubric-guide" aria-label="Visible Rubric Guide">
+            <div class="rubric-guide-header">
+              <span class="rubric-guide-title">Visible Evaluation Rubric</span>
+              <span class="rubric-sub">Feedback is strictly coaching on these 4 dimensions (no hiring score)</span>
+            </div>
+            <div class="rubric-criteria-grid">
+              <div class="criteria-card">
+                <span class="criteria-tag">Clarity</span>
+                <p>Easy to follow, crisp expression, concise phrasing without rambling.</p>
+              </div>
+              <div class="criteria-card">
+                <span class="criteria-tag">Structure</span>
+                <p>Organized flow with beginning, middle, and end (e.g. Situation, Action, Result).</p>
+              </div>
+              <div class="criteria-card">
+                <span class="criteria-tag">Relevance</span>
+                <p>Directly answers the prompt and focuses on the chosen role's priorities.</p>
+              </div>
+              <div class="criteria-card">
+                <span class="criteria-tag">Examples</span>
+                <p>Specific details, real scenarios, trade-offs, and measurable outcomes.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="textarea-header">
+            <label for="answer">Your answer</label>
+            <span class="word-counter" id="word-counter">0 words</span>
+          </div>
+          <textarea
+            id="answer"
+            rows="8"
+            placeholder="Type your answer here. Use concrete examples and a clear structure. Press Ctrl+Enter to submit."
+          ></textarea>
+          <div class="actions">
+            <button id="feedback-btn" type="button">Get rubric feedback</button>
+            <button id="new-question-btn" class="ghost" type="button">
+              New question
+            </button>
+          </div>
+        </section>
+
+        <section class="card" id="feedback-card" hidden>
+          <h2>3. Rubric feedback</h2>
+          <p class="summary" id="summary"></p>
+          <div class="rubric" id="rubric"></div>
+          <div class="split">
+            <div class="feedback-col strengths-col">
+              <h3>What worked well</h3>
+              <ul id="strengths"></ul>
+            </div>
+            <div class="feedback-col improvements-col">
+              <h3>Suggestions for improvement</h3>
+              <ul id="improvements"></ul>
+            </div>
+          </div>
+          <div class="feedback-actions">
+            <button id="retry-btn" class="ghost" type="button">Revise this answer</button>
+            <button id="next-role-btn" type="button">Practice another question</button>
+          </div>
+        </section>
+
+        <p class="status" id="status" role="status"></p>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

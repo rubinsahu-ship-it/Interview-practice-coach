@@ -1,0 +1,10 @@
+{
+  "name": "interview-practice-coach",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Practice one interview question at a time with Gemini rubric feedback.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
