@@ -1,0 +1,12 @@
+node.exe
+nodevars.bat
+install_tools.bat
+npm
+npm.cmd
+npm.ps1
+npx
+npx.cmd
+npx.ps1
+.env
+.git
+node_modules

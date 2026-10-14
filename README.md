@@ -11,6 +11,8 @@ A clean, focused web app to practice interview questions with AI feedback:
   4. **Examples**: Concrete details, metrics, and real scenarios.
 - **Pure Coaching**: No hiring score, no pass/fail verdict, no voice.
 
+**Live Demo**: [https://interview-practice-coach-kappa.vercel.app](https://interview-practice-coach-kappa.vercel.app)
+
 ---
 
 ## Getting Started
