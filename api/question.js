@@ -45,7 +45,12 @@ export default async function handler(req, res) {
       return sendResponse(res, 400, { error: "Choose a job role first." });
     }
 
-    const question = await askQuestion(role);
+    const question = await askQuestion({
+      role,
+      difficulty: body.difficulty,
+      questionNumber: body.questionNumber,
+      previousQuestions: body.previousQuestions,
+    });
     return sendResponse(res, 200, { question });
   } catch (error) {
     console.error("API /api/question error:", error);

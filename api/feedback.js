@@ -50,7 +50,14 @@ export default async function handler(req, res) {
       });
     }
 
-    const feedback = await scoreFeedback({ role, question, answer });
+    const feedback = await scoreFeedback({
+      role,
+      difficulty: body.difficulty,
+      question,
+      answer,
+      followUpQuestion: body.followUpQuestion,
+      followUpAnswer: body.followUpAnswer,
+    });
     return sendResponse(res, 200, feedback);
   } catch (error) {
     console.error("API /api/feedback error:", error);

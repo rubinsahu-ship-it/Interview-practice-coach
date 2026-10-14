@@ -3,123 +3,343 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Interview Practice Coach</title>
+    <title>Interview Practice Coach — Interactive Mock Interview</title>
     <link rel="stylesheet" href="/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,650&family=Source+Sans+3:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,650&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
     <div class="page">
       <header class="hero">
-        <p class="eyebrow">One question. Typed answer. Rubric feedback.</p>
+        <p class="eyebrow">Interactive 5-Question Simulation</p>
         <h1>Interview Practice Coach</h1>
         <p class="lede">
-          Pick a role, answer one question, and get coaching on clarity,
-          structure, relevance, and examples. No hiring score.
+          Simulate an end-to-end interview: 30-second thinking timers, voice or
+          typed answers, adaptive AI follow-ups, and 3-part coaching feedback.
+          No hiring score.
         </p>
       </header>
 
       <main>
-        <section class="card" aria-labelledby="role-heading">
-          <h2 id="role-heading">1. Choose a job role</h2>
-          <label for="role">Role</label>
-          <select id="role">
-            <option value="">Select a role</option>
-            <option>Software Engineer</option>
-            <option>Product Manager</option>
-            <option>Data Analyst</option>
-            <option>UX Designer</option>
-            <option>Marketing Manager</option>
-            <option>Customer Success Manager</option>
-            <option value="custom">Other (type below)</option>
-          </select>
-          <label for="custom-role" class="hidden" id="custom-role-label">Custom role</label>
-          <input
-            id="custom-role"
-            class="hidden"
-            type="text"
-            placeholder="e.g. Cloud Security Engineer, Healthcare"
-            autocomplete="off"
-          />
-          <button id="ask-btn" type="button">Ask me a question</button>
+        <!-- STEP 1: SETUP SCREEN -->
+        <section class="card" id="setup-card" aria-labelledby="setup-heading">
+          <div class="card-header">
+            <h2 id="setup-heading">1. Interview Setup</h2>
+            <span class="badge">5-Question Session</span>
+          </div>
+
+          <div class="form-group">
+            <label for="role-select">Job Role / Type</label>
+            <select id="role-select">
+              <option value="">Select a job role</option>
+              <option>Software Engineer</option>
+              <option>Product Manager</option>
+              <option>Data Analyst</option>
+              <option>UX Designer</option>
+              <option>Marketing Manager</option>
+              <option>Customer Success Manager</option>
+              <option value="custom">Other (type below)</option>
+            </select>
+            <label for="custom-role-input" class="hidden" id="custom-role-label">Custom Role</label>
+            <input
+              id="custom-role-input"
+              class="hidden"
+              type="text"
+              placeholder="e.g. Cloud Security Engineer, AI Research Scientist"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="difficulty-select">Difficulty Level</label>
+            <select id="difficulty-select">
+              <option value="Entry-Level">Entry-Level (0–2 years experience)</option>
+              <option value="Mid-Level" selected>Mid-Level (2–5 years experience)</option>
+              <option value="Senior / Lead">Senior / Lead (5+ years experience)</option>
+            </select>
+          </div>
+
+          <div class="setup-features-banner">
+            <div class="feature-item">
+              <span class="feature-icon">⏱️</span>
+              <div>
+                <strong>30s Thinking Timer</strong>
+                <p>Gather your thoughts before speaking or typing</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🎙️</span>
+              <div>
+                <strong>Voice or Text</strong>
+                <p>Speak with real-time mic transcription or type freely</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">⚡</span>
+              <div>
+                <strong>Adaptive Follow-up</strong>
+                <p>AI probes deeper into your answer like a real interviewer</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🎯</span>
+              <div>
+                <strong>3-Part Feedback</strong>
+                <p>What worked, what was missing & a stronger sample answer</p>
+              </div>
+            </div>
+          </div>
+
+          <button id="start-interview-btn" type="button" class="btn-primary">
+            Start 5-Question Interview
+          </button>
         </section>
 
-        <section class="card" id="question-card" hidden>
+        <!-- STEP 2: ACTIVE QUESTION & THINKING TIMER SCREEN -->
+        <section class="card" id="question-card" hidden aria-labelledby="question-heading">
+          <div class="interview-meta-header">
+            <div>
+              <span class="step-label" id="q-progress-label">Question 1 of 5</span>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progress-bar-fill" style="width: 20%;"></div>
+              </div>
+            </div>
+            <div class="meta-badges">
+              <span class="badge" id="active-role-badge">Software Engineer</span>
+              <span class="badge badge-difficulty" id="active-diff-badge">Mid-Level</span>
+              <button id="end-interview-btn-top" type="button" class="btn-text danger-text" title="End interview early">End Interview</button>
+            </div>
+          </div>
+
+          <div class="question-container">
+            <h2 id="question-heading" class="question-text"></h2>
+          </div>
+
+          <!-- THINKING TIMER SECTION -->
+          <div class="timer-box" id="thinking-timer-box">
+            <div class="timer-header">
+              <div class="timer-badge">
+                <span class="timer-icon">⏳</span>
+                <span>Thinking Time: <strong id="timer-seconds">30</strong>s</span>
+              </div>
+              <button id="skip-timer-btn" type="button" class="btn-subtle">
+                Ready to Answer (Skip Timer)
+              </button>
+            </div>
+            <div class="timer-bar-track">
+              <div class="timer-bar-fill" id="timer-bar-fill"></div>
+            </div>
+            <p class="timer-hint">Use this quiet time to structure your thoughts (STAR method: Situation, Task, Action, Result).</p>
+          </div>
+
+          <!-- MAIN ANSWER INPUT SECTION -->
+          <div class="answer-section" id="main-answer-section">
+            <div class="textarea-header">
+              <label for="main-answer-input">Your Answer</label>
+              <div class="answer-tools">
+                <button id="main-mic-btn" type="button" class="mic-btn" aria-label="Toggle voice input">
+                  <span class="mic-icon">🎙️</span>
+                  <span class="mic-text">Answer by Voice</span>
+                </button>
+                <span class="word-counter" id="main-word-counter">0 words</span>
+              </div>
+            </div>
+
+            <div class="recording-banner hidden" id="main-recording-banner">
+              <span class="pulse-dot"></span>
+              <span>Listening to your voice… speak clearly. Transcribing into text below.</span>
+              <button type="button" id="main-stop-mic-btn" class="btn-tiny">Stop</button>
+            </div>
+
+            <textarea
+              id="main-answer-input"
+              rows="7"
+              placeholder="Speak using the microphone or type your answer here. Include concrete details, choices you made, and measurable impact."
+            ></textarea>
+
+            <div class="actions">
+              <button id="submit-main-answer-btn" type="button" class="btn-primary">
+                Submit Answer
+              </button>
+              <button id="retry-question-btn" type="button" class="btn-ghost">
+                Reset & Retry Question
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 3: FOLLOW-UP QUESTION SCREEN -->
+        <section class="card" id="followup-card" hidden aria-labelledby="followup-heading">
           <div class="card-header">
-            <h2>2. Answer the question</h2>
-            <span class="role-badge" id="active-role-badge"></span>
-          </div>
-          <p class="question" id="question"></p>
-
-          <div class="rubric-guide" aria-label="Visible Rubric Guide">
-            <div class="rubric-guide-header">
-              <span class="rubric-guide-title">Visible Evaluation Rubric</span>
-              <span class="rubric-sub">Feedback is strictly coaching on these 4 dimensions (no hiring score)</span>
+            <div>
+              <span class="followup-badge">⚡ Interviewer Follow-Up</span>
+              <h2 id="followup-heading" class="followup-title">Interviewer's Follow-Up Question</h2>
             </div>
-            <div class="rubric-criteria-grid">
-              <div class="criteria-card">
-                <span class="criteria-tag">Clarity</span>
-                <p>Easy to follow, crisp expression, concise phrasing without rambling.</p>
-              </div>
-              <div class="criteria-card">
-                <span class="criteria-tag">Structure</span>
-                <p>Organized flow with beginning, middle, and end (e.g. Situation, Action, Result).</p>
-              </div>
-              <div class="criteria-card">
-                <span class="criteria-tag">Relevance</span>
-                <p>Directly answers the prompt and focuses on the chosen role's priorities.</p>
-              </div>
-              <div class="criteria-card">
-                <span class="criteria-tag">Examples</span>
-                <p>Specific details, real scenarios, trade-offs, and measurable outcomes.</p>
-              </div>
-            </div>
+            <span class="badge" id="followup-step-badge">Question 1 Follow-up</span>
           </div>
 
-          <div class="textarea-header">
-            <label for="answer">Your answer</label>
-            <span class="word-counter" id="word-counter">0 words</span>
+          <div class="context-recap">
+            <p class="recap-label">Main Question:</p>
+            <p class="recap-text" id="recap-main-question"></p>
           </div>
-          <textarea
-            id="answer"
-            rows="8"
-            placeholder="Type your answer here. Use concrete examples and a clear structure. Press Ctrl+Enter to submit."
-          ></textarea>
-          <div class="actions">
-            <button id="feedback-btn" type="button">Get rubric feedback</button>
-            <button id="new-question-btn" class="ghost" type="button">
-              New question
+
+          <div class="followup-question-box">
+            <p class="followup-question-text" id="followup-question-text"></p>
+          </div>
+
+          <div class="answer-section" id="followup-answer-section">
+            <div class="textarea-header">
+              <label for="followup-answer-input">Your Response to Follow-up</label>
+              <div class="answer-tools">
+                <button id="followup-mic-btn" type="button" class="mic-btn" aria-label="Toggle voice follow-up">
+                  <span class="mic-icon">🎙️</span>
+                  <span class="mic-text">Answer by Voice</span>
+                </button>
+                <span class="word-counter" id="followup-word-counter">0 words</span>
+              </div>
+            </div>
+
+            <div class="recording-banner hidden" id="followup-recording-banner">
+              <span class="pulse-dot"></span>
+              <span>Listening to your voice… Click Stop when finished.</span>
+              <button type="button" id="followup-stop-mic-btn" class="btn-tiny">Stop</button>
+            </div>
+
+            <textarea
+              id="followup-answer-input"
+              rows="5"
+              placeholder="Answer the follow-up question directly. Mention specific trade-offs, metrics, or clarifications."
+            ></textarea>
+
+            <div class="actions">
+              <button id="submit-followup-btn" type="button" class="btn-primary">
+                Submit & Get 3-Part Feedback
+              </button>
+              <button id="end-interview-btn-followup" type="button" class="btn-ghost danger-text">
+                End Interview Early
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 4: 3-PART QUESTION FEEDBACK SCREEN -->
+        <section class="card" id="feedback-card" hidden aria-labelledby="feedback-heading">
+          <div class="card-header">
+            <div>
+              <span class="step-label" id="feedback-step-label">Feedback for Question 1</span>
+              <h2 id="feedback-heading">3-Part Coaching Feedback</h2>
+            </div>
+            <span class="badge" id="feedback-role-badge">Mid-Level</span>
+          </div>
+
+          <!-- PART 1: WHAT WAS GOOD -->
+          <div class="feedback-block good-block">
+            <div class="block-title">
+              <span class="block-icon">✓</span>
+              <h3>1. What Was Good</h3>
+            </div>
+            <ul id="feedback-good-list" class="feedback-list"></ul>
+          </div>
+
+          <!-- PART 2: WHAT WAS MISSING -->
+          <div class="feedback-block missing-block">
+            <div class="block-title">
+              <span class="block-icon">!</span>
+              <h3>2. What Was Missing</h3>
+            </div>
+            <ul id="feedback-missing-list" class="feedback-list"></ul>
+          </div>
+
+          <!-- PART 3: STRONGER SAMPLE ANSWER -->
+          <div class="feedback-block sample-block">
+            <div class="block-title">
+              <span class="block-icon">💡</span>
+              <h3>3. Stronger Sample Answer</h3>
+            </div>
+            <p class="sample-intro">Here is how a top-tier candidate answers this question and its follow-up effectively:</p>
+            <div class="sample-answer-content" id="feedback-sample-answer"></div>
+          </div>
+
+          <!-- FEEDBACK CONTROLS (Next, Retry, End) -->
+          <div class="feedback-actions-bar">
+            <button id="next-question-btn" type="button" class="btn-primary">
+              Next Question →
+            </button>
+            <button id="retry-current-question-btn" type="button" class="btn-ghost">
+              Retry This Question
+            </button>
+            <button id="end-interview-btn-feedback" type="button" class="btn-ghost danger-text">
+              End Interview & View Summary
             </button>
           </div>
         </section>
 
-        <section class="card" id="feedback-card" hidden>
-          <h2>3. Rubric feedback</h2>
-          <p class="summary" id="summary"></p>
-          <div class="rubric" id="rubric"></div>
-          <div class="split">
-            <div class="feedback-col strengths-col">
-              <h3>What worked well</h3>
-              <ul id="strengths"></ul>
-            </div>
-            <div class="feedback-col improvements-col">
-              <h3>Suggestions for improvement</h3>
-              <ul id="improvements"></ul>
+        <!-- STEP 5: FINAL 5-QUESTION SUMMARY SCREEN -->
+        <section class="card" id="final-summary-card" hidden aria-labelledby="summary-heading">
+          <div class="summary-hero">
+            <span class="summary-confetti">🎯</span>
+            <h2 id="summary-heading">Mock Interview Complete</h2>
+            <p class="summary-subtitle" id="summary-meta-subtitle">
+              5-Question Mock Interview Report
+            </p>
+            <div class="no-score-badge">
+              Pure Coaching Feedback • No Hiring / Rejection Score
             </div>
           </div>
-          <div class="feedback-actions">
-            <button id="retry-btn" class="ghost" type="button">Revise this answer</button>
-            <button id="next-role-btn" type="button">Practice another question</button>
+
+          <div class="summary-overview-box">
+            <h3>Performance Overview</h3>
+            <p id="summary-overview-text"></p>
+          </div>
+
+          <div class="summary-columns">
+            <div class="summary-col strengths-col">
+              <div class="col-header">
+                <span class="col-icon">⭐</span>
+                <h3>Overall Strengths</h3>
+              </div>
+              <ul id="summary-strengths-list"></ul>
+            </div>
+
+            <div class="summary-col improvements-col">
+              <div class="col-header">
+                <span class="col-icon">📈</span>
+                <h3>Key Improvement Areas</h3>
+              </div>
+              <ul id="summary-improvements-list"></ul>
+            </div>
+          </div>
+
+          <div class="practice-suggestion-box">
+            <div class="suggestion-header">
+              <span class="col-icon">🚀</span>
+              <h3>Recommended Next Practice</h3>
+            </div>
+            <p id="summary-suggestion-text"></p>
+          </div>
+
+          <!-- REVIEW ALL QUESTIONS ACCORDION -->
+          <div class="transcript-review">
+            <h3>Question-by-Question Review</h3>
+            <div id="transcript-accordion-container" class="accordion-container"></div>
+          </div>
+
+          <div class="summary-actions">
+            <button id="restart-interview-btn" type="button" class="btn-primary">
+              Start a New Mock Interview
+            </button>
           </div>
         </section>
 
-        <p class="status" id="status" role="status"></p>
+        <!-- STATUS & NOTIFICATION BANNER -->
+        <div class="status-banner" id="status" role="status" aria-live="polite"></div>
       </main>
     </div>
-    <script src="/app.js"></script>
+
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

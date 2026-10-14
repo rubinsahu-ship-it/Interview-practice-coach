@@ -2,7 +2,12 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { askQuestion, scoreFeedback } from "./lib/gemini.js";
+import {
+  askQuestion,
+  askFollowUp,
+  scoreFeedback,
+  generateInterviewSummary,
+} from "./lib/gemini.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -30,8 +35,30 @@ const server = createServer(async (req, res) => {
         return sendJson(res, 400, { error: "Choose a job role first." });
       }
 
-      const question = await askQuestion(role);
+      const question = await askQuestion({
+        role,
+        difficulty: body.difficulty,
+        questionNumber: body.questionNumber,
+        previousQuestions: body.previousQuestions,
+      });
       return sendJson(res, 200, { question });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/followup") {
+      const body = await readJsonBody(req);
+      const role = String(body.role || "").trim();
+      const difficulty = String(body.difficulty || "Mid-Level").trim();
+      const question = String(body.question || "").trim();
+      const answer = String(body.answer || "").trim();
+
+      if (!role || !question || !answer) {
+        return sendJson(res, 400, {
+          error: "Role, question, and answer are required.",
+        });
+      }
+
+      const followUpQuestion = await askFollowUp({ role, difficulty, question, answer });
+      return sendJson(res, 200, { followUpQuestion });
     }
 
     if (req.method === "POST" && url.pathname === "/api/feedback") {
@@ -46,8 +73,31 @@ const server = createServer(async (req, res) => {
         });
       }
 
-      const feedback = await scoreFeedback({ role, question, answer });
+      const feedback = await scoreFeedback({
+        role,
+        difficulty: body.difficulty,
+        question,
+        answer,
+        followUpQuestion: body.followUpQuestion,
+        followUpAnswer: body.followUpAnswer,
+      });
       return sendJson(res, 200, feedback);
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/summary") {
+      const body = await readJsonBody(req);
+      const role = String(body.role || "").trim();
+      const difficulty = String(body.difficulty || "Mid-Level").trim();
+      const history = Array.isArray(body.history) ? body.history : [];
+
+      if (!role || history.length === 0) {
+        return sendJson(res, 400, {
+          error: "Role and at least one completed question history are required.",
+        });
+      }
+
+      const summary = await generateInterviewSummary({ role, difficulty, history });
+      return sendJson(res, 200, summary);
     }
 
     if (req.method === "GET" || req.method === "HEAD") {
