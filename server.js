@@ -2,10 +2,10 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { askQuestion, scoreFeedback } from "./lib/gemini.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, "public");
-const RUBRIC = ["clarity", "structure", "relevance", "examples"];
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -18,7 +18,6 @@ const MIME = {
 await loadEnv(path.join(__dirname, ".env"));
 
 const PORT = Number(process.env.PORT) || 3000;
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 const server = createServer(async (req, res) => {
   try {
@@ -31,25 +30,7 @@ const server = createServer(async (req, res) => {
         return sendJson(res, 400, { error: "Choose a job role first." });
       }
 
-      const data = await generateJson(
-        [
-          `You are an experienced interviewer for the role: ${role}.`,
-          "Ask exactly one interview question a candidate would likely get in a real interview.",
-          "Make it specific to the role, open-ended, and answerable in a few paragraphs.",
-          "Do not include hints, follow-ups, or an ideal answer.",
-          "Return JSON only.",
-        ].join(" "),
-        {
-          type: "object",
-          properties: { question: { type: "string" } },
-          required: ["question"],
-        }
-      );
-
-      const question = String(data.question || "").trim();
-      if (!question) {
-        return sendJson(res, 502, { error: "Gemini did not return a question." });
-      }
+      const question = await askQuestion(role);
       return sendJson(res, 200, { question });
     }
 
@@ -65,67 +46,8 @@ const server = createServer(async (req, res) => {
         });
       }
 
-      const data = await generateJson(
-        [
-          "You are an interview coach, not a hiring manager.",
-          `Job role: ${role}`,
-          `Interview question: ${question}`,
-          `Candidate answer: ${answer}`,
-          "Score the answer on these four rubric dimensions only: clarity, structure, relevance, examples.",
-          "Each score is an integer from 1 to 5.",
-          "clarity: is the answer easy to follow?",
-          "structure: does it have a beginning, middle, and end?",
-          "relevance: does it actually answer the question for this role?",
-          "examples: does it use concrete details or stories?",
-          "Give a short comment for each dimension, 2-4 strengths, and 2-4 improvements.",
-          "Do not give a hiring score, overall score, pass/fail, or hire/no-hire recommendation.",
-          "Return JSON only.",
-        ].join("\n"),
-        {
-          type: "object",
-          properties: {
-            summary: { type: "string" },
-            rubric: {
-              type: "object",
-              properties: Object.fromEntries(
-                RUBRIC.map((key) => [
-                  key,
-                  {
-                    type: "object",
-                    properties: {
-                      score: { type: "integer" },
-                      comment: { type: "string" },
-                    },
-                    required: ["score", "comment"],
-                  },
-                ])
-              ),
-              required: RUBRIC,
-            },
-            strengths: { type: "array", items: { type: "string" } },
-            improvements: { type: "array", items: { type: "string" } },
-          },
-          required: ["summary", "rubric", "strengths", "improvements"],
-        }
-      );
-
-      const rubric = {};
-      for (const key of RUBRIC) {
-        const item = data.rubric?.[key] || {};
-        rubric[key] = {
-          score: Math.min(5, Math.max(1, Number(item.score) || 1)),
-          comment: String(item.comment || "").trim() || "No comment provided.",
-        };
-      }
-
-      return sendJson(res, 200, {
-        summary: String(data.summary || "").trim(),
-        rubric,
-        strengths: Array.isArray(data.strengths) ? data.strengths.map(String) : [],
-        improvements: Array.isArray(data.improvements)
-          ? data.improvements.map(String)
-          : [],
-      });
+      const feedback = await scoreFeedback({ role, question, answer });
+      return sendJson(res, 200, feedback);
     }
 
     if (req.method === "GET" || req.method === "HEAD") {
@@ -165,57 +87,6 @@ async function loadEnv(filePath) {
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-}
-
-function apiKey() {
-  const key = process.env.GEMINI_API_KEY?.trim();
-  if (!key) {
-    const error = new Error("Missing GEMINI_API_KEY. Add it to your .env file.");
-    error.status = 500;
-    throw error;
-  }
-  return key;
-}
-
-async function generateJson(prompt, schema) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey(),
-      },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: schema,
-        },
-      }),
-    }
-  );
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message =
-      payload?.error?.message || `Gemini request failed (${response.status}).`;
-    const error = new Error(message);
-    error.status = 502;
-    throw error;
-  }
-
-  const text = payload?.candidates?.[0]?.content?.parts
-    ?.map((part) => part.text || "")
-    .join("")
-    .trim();
-  return parseJson(text);
-}
-
-function parseJson(text) {
-  const raw = String(text || "").trim();
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  return JSON.parse(fenced ? fenced[1] : raw);
 }
 
 async function readJsonBody(req) {
