@@ -1,8 +1,8 @@
-// Interview Practice Coach - Interactive End-to-End Mock Interview Flow
+// Interview Arena — Gamified Quiz-Style Interview Practice Coach
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-// Application State
+// Application & Game State
 const state = {
   role: "",
   difficulty: "Mid-Level",
@@ -12,7 +12,10 @@ const state = {
   currentAnswer: "",
   currentFollowUp: "",
   currentFollowUpAnswer: "",
-  history: [], // { question, answer, followUpQuestion, followUpAnswer, feedback }
+  score: 0, // Total Practice XP
+  streak: 0, // Continuous answer streak
+  maxStreak: 0,
+  history: [], // { question, answer, followUpQuestion, followUpAnswer, feedback, roundPoints }
   timerInterval: null,
   secondsRemaining: 30,
   activeRecognition: null,
@@ -20,33 +23,43 @@ const state = {
   activeBanner: null,
 };
 
-// DOM Elements - Screens
+// SVG Timer circumference: 2 * PI * 42 ~= 263.89
+const TIMER_CIRCUMFERENCE = 263.89;
+
+// DOM Elements - Screens & HUD
+const gameHud = document.querySelector("#game-hud");
+const hudQVal = document.querySelector("#hud-q-val");
+const hudRoleName = document.querySelector("#hud-role-name");
+const hudDiffBadge = document.querySelector("#hud-diff-badge");
+const hudStreakVal = document.querySelector("#hud-streak-val");
+const hudStreakChip = document.querySelector("#hud-streak-chip");
+const hudXpVal = document.querySelector("#hud-xp-val");
+const hudQuitBtn = document.querySelector("#hud-quit-btn");
+
 const setupCard = document.querySelector("#setup-card");
 const questionCard = document.querySelector("#question-card");
 const followupCard = document.querySelector("#followup-card");
 const feedbackCard = document.querySelector("#feedback-card");
 const finalSummaryCard = document.querySelector("#final-summary-card");
 const statusEl = document.querySelector("#status");
+const confettiCanvas = document.querySelector("#confetti-canvas");
 
-// Setup Screen Elements
+// Setup Screen
 const roleSelect = document.querySelector("#role-select");
 const customRoleInput = document.querySelector("#custom-role-input");
-const customRoleLabel = document.querySelector("#custom-role-label");
-const difficultySelect = document.querySelector("#difficulty-select");
+const difficultyInput = document.querySelector("#difficulty-select");
+const diffChips = document.querySelectorAll(".diff-chip");
 const startInterviewBtn = document.querySelector("#start-interview-btn");
 
-// Question Screen Elements
-const qProgressLabel = document.querySelector("#q-progress-label");
+// Question Screen
+const qRoundLabel = document.querySelector("#q-round-label");
 const progressBarFill = document.querySelector("#progress-bar-fill");
-const activeRoleBadge = document.querySelector("#active-role-badge");
-const activeDiffBadge = document.querySelector("#active-diff-badge");
-const endInterviewBtnTop = document.querySelector("#end-interview-btn-top");
 const questionHeading = document.querySelector("#question-heading");
 
-// Thinking Timer Elements
+// Countdown Timer Elements
 const thinkingTimerBox = document.querySelector("#thinking-timer-box");
+const timerSvgCircle = document.querySelector("#timer-svg-circle");
 const timerSeconds = document.querySelector("#timer-seconds");
-const timerBarFill = document.querySelector("#timer-bar-fill");
 const skipTimerBtn = document.querySelector("#skip-timer-btn");
 
 // Main Answer Elements
@@ -58,8 +71,8 @@ const mainAnswerInput = document.querySelector("#main-answer-input");
 const submitMainAnswerBtn = document.querySelector("#submit-main-answer-btn");
 const retryQuestionBtn = document.querySelector("#retry-question-btn");
 
-// Follow-up Screen Elements
-const followupStepBadge = document.querySelector("#followup-step-badge");
+// Follow-up Screen
+const followupRecapQnum = document.querySelector("#followup-recap-qnum");
 const recapMainQuestion = document.querySelector("#recap-main-question");
 const followupQuestionText = document.querySelector("#followup-question-text");
 const followupMicBtn = document.querySelector("#followup-mic-btn");
@@ -68,11 +81,11 @@ const followupStopMicBtn = document.querySelector("#followup-stop-mic-btn");
 const followupWordCounter = document.querySelector("#followup-word-counter");
 const followupAnswerInput = document.querySelector("#followup-answer-input");
 const submitFollowupBtn = document.querySelector("#submit-followup-btn");
-const endInterviewBtnFollowup = document.querySelector("#end-interview-btn-followup");
 
-// 3-Part Feedback Screen Elements
-const feedbackStepLabel = document.querySelector("#feedback-step-label");
-const feedbackRoleBadge = document.querySelector("#feedback-role-badge");
+// 3-Part Feedback Screen
+const feedbackXpPill = document.querySelector("#feedback-xp-pill");
+const feedbackStreakPill = document.querySelector("#feedback-streak-pill");
+const feedbackRoundNum = document.querySelector("#feedback-round-num");
 const feedbackGoodList = document.querySelector("#feedback-good-list");
 const feedbackMissingList = document.querySelector("#feedback-missing-list");
 const feedbackSampleAnswer = document.querySelector("#feedback-sample-answer");
@@ -80,7 +93,10 @@ const nextQuestionBtn = document.querySelector("#next-question-btn");
 const retryCurrentQuestionBtn = document.querySelector("#retry-current-question-btn");
 const endInterviewBtnFeedback = document.querySelector("#end-interview-btn-feedback");
 
-// Final Summary Screen Elements
+// Final Summary Screen
+const finalXpNumber = document.querySelector("#final-xp-number");
+const finalStreakNumber = document.querySelector("#final-streak-number");
+const finalQuestionsNumber = document.querySelector("#final-questions-number");
 const summaryMetaSubtitle = document.querySelector("#summary-meta-subtitle");
 const summaryOverviewText = document.querySelector("#summary-overview-text");
 const summaryStrengthsList = document.querySelector("#summary-strengths-list");
@@ -89,7 +105,9 @@ const summarySuggestionText = document.querySelector("#summary-suggestion-text")
 const transcriptAccordionContainer = document.querySelector("#transcript-accordion-container");
 const restartInterviewBtn = document.querySelector("#restart-interview-btn");
 
-// Helper: HTTP JSON request
+// ==========================================================================
+// HTTP JSON Request Helper
+// ==========================================================================
 async function requestJson(url, body) {
   const response = await fetch(url, {
     method: "POST",
@@ -98,20 +116,22 @@ async function requestJson(url, body) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error || `Request failed with status ${response.status}.`);
+    throw new Error(data.error || `Request failed (${response.status}).`);
   }
   return data;
 }
 
 function setStatus(message, isError = true) {
   statusEl.textContent = message || "";
-  statusEl.style.color = isError ? "var(--accent)" : "var(--good)";
+  statusEl.style.color = isError ? "#ffa6a6" : "#c6ffc6";
 }
 
 function setBusy(button, busy, label) {
   if (!button) return;
   button.disabled = busy;
-  if (label) button.textContent = label;
+  if (label) {
+    button.innerHTML = `<span>${label}</span>`;
+  }
 }
 
 function updateWordCounter(textarea, counterEl) {
@@ -124,7 +144,6 @@ function updateWordCounter(textarea, counterEl) {
 roleSelect.addEventListener("change", () => {
   const isCustom = roleSelect.value === "custom";
   customRoleInput.classList.toggle("hidden", !isCustom);
-  customRoleLabel.classList.toggle("hidden", !isCustom);
   if (isCustom) customRoleInput.focus();
 });
 
@@ -135,18 +154,109 @@ function getSelectedRole() {
   return roleSelect.value.trim();
 }
 
-// Navigation Helper: Show one screen at a time
+// Difficulty Chips Click
+diffChips.forEach((chip) => {
+  chip.addEventListener("click", () => {
+    diffChips.forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+    difficultyInput.value = chip.dataset.value;
+  });
+});
+
+// Navigation: Show single screen
 function showScreen(screenToShow) {
   const screens = [setupCard, questionCard, followupCard, feedbackCard, finalSummaryCard];
-  for (const s of screens) {
+  screens.forEach((s) => {
     if (s) s.hidden = (s !== screenToShow);
-  }
+  });
+
+  const inQuiz = screenToShow !== setupCard;
+  gameHud.classList.toggle("hidden", !inQuiz);
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// -------------------------------------------------------------
-// Voice Recognition (Web Speech API with Graceful Text Fallback)
-// -------------------------------------------------------------
+// ==========================================================================
+// Game HUD Updates
+// ==========================================================================
+function updateHud(qNum) {
+  hudQVal.textContent = `${qNum}/${state.totalQuestions}`;
+  hudRoleName.textContent = state.role || "Role";
+  hudDiffBadge.textContent = state.difficulty.split(" ")[0]; // e.g. "Senior" or "Mid"
+  hudStreakVal.textContent = state.streak;
+  hudXpVal.textContent = state.score.toLocaleString();
+}
+
+function bumpStreak() {
+  hudStreakChip.classList.add("bump");
+  setTimeout(() => hudStreakChip.classList.remove("bump"), 300);
+}
+
+// ==========================================================================
+// Lightweight Confetti Particle Engine (Zero Dependencies)
+// ==========================================================================
+function triggerConfetti() {
+  if (!confettiCanvas) return;
+  const ctx = confettiCanvas.getContext("2d");
+  const width = (confettiCanvas.width = window.innerWidth);
+  const height = (confettiCanvas.height = window.innerHeight);
+
+  const colors = ["#e21b3c", "#1368ce", "#ffa602", "#26890c", "#864cbf", "#ffffff"];
+  const particles = [];
+  const particleCount = 80;
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      x: width * 0.5 + (Math.random() - 0.5) * 200,
+      y: height * 0.4,
+      vx: (Math.random() - 0.5) * 14,
+      vy: Math.random() * -12 - 4,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rSpeed: (Math.random() - 0.5) * 8,
+      opacity: 1,
+    });
+  }
+
+  let animationFrame;
+  const render = () => {
+    ctx.clearRect(0, 0, width, height);
+    let alive = 0;
+
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.4; // gravity
+      p.rotation += p.rSpeed;
+      p.opacity -= 0.012;
+
+      if (p.opacity > 0 && p.y < height) {
+        alive++;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+        ctx.restore();
+      }
+    }
+
+    if (alive > 0) {
+      animationFrame = requestAnimationFrame(render);
+    } else {
+      ctx.clearRect(0, 0, width, height);
+      cancelAnimationFrame(animationFrame);
+    }
+  };
+
+  render();
+}
+
+// ==========================================================================
+// Web Speech API Voice Input (With Graceful Fallback)
+// ==========================================================================
 function stopActiveVoiceInput() {
   if (state.activeRecognition) {
     try {
@@ -157,7 +267,7 @@ function stopActiveVoiceInput() {
   if (state.activeMicBtn) {
     state.activeMicBtn.classList.remove("recording");
     const label = state.activeMicBtn.querySelector(".mic-text");
-    if (label) label.textContent = "Answer by Voice";
+    if (label) label.textContent = "Answer with Voice";
   }
   if (state.activeBanner) {
     state.activeBanner.classList.add("hidden");
@@ -167,19 +277,16 @@ function stopActiveVoiceInput() {
 }
 
 function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
-  // If already recording with this button, stop it
   if (state.activeRecognition && state.activeMicBtn === micBtn) {
     stopActiveVoiceInput();
     setStatus("Voice recording paused. You can edit or continue typing below.", false);
     return;
   }
 
-  // Stop any other active voice input first
   stopActiveVoiceInput();
 
-  // If browser does not support SpeechRecognition, inform gracefully
   if (!SpeechRecognition) {
-    setStatus("Voice recognition is not supported in this browser. Please type your answer below.", true);
+    setStatus("Speech recognition is not supported in this browser. Please type your answer below.", true);
     targetTextarea.focus();
     return;
   }
@@ -203,7 +310,7 @@ function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
       const label = micBtn.querySelector(".mic-text");
       if (label) label.textContent = "Recording… (Click to Stop)";
       bannerEl.classList.remove("hidden");
-      setStatus("Microphone is active. Speak clearly.", false);
+      setStatus("Microphone active! Speak clearly.", false);
     };
 
     recognition.onresult = (event) => {
@@ -216,12 +323,12 @@ function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
     };
 
     recognition.onerror = (event) => {
-      console.warn("Speech recognition event error:", event.error);
+      console.warn("Speech recognition error:", event.error);
       stopActiveVoiceInput();
       if (event.error === "not-allowed" || event.error === "permission-denied") {
-        setStatus("Microphone permission was denied. You can continue by typing in the box below.", true);
+        setStatus("Microphone permission denied. You can continue by typing in the box below.", true);
       } else if (event.error === "no-speech") {
-        setStatus("No speech was detected. You can speak again or type below.", false);
+        setStatus("No speech detected. Speak again or type your answer below.", false);
       } else {
         setStatus("Voice input encountered an error. Text input is ready.", false);
       }
@@ -234,13 +341,12 @@ function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
 
     recognition.start();
   } catch (err) {
-    console.error("SpeechRecognition initialization error:", err);
+    console.error("SpeechRecognition error:", err);
     stopActiveVoiceInput();
-    setStatus("Could not start microphone. Please type your answer below.", true);
+    setStatus("Could not activate microphone. Please type your answer below.", true);
   }
 }
 
-// Wire up mic buttons
 mainMicBtn.addEventListener("click", () => {
   toggleVoiceInput(mainAnswerInput, mainMicBtn, mainRecordingBanner, mainWordCounter);
 });
@@ -251,47 +357,49 @@ followupMicBtn.addEventListener("click", () => {
 });
 followupStopMicBtn.addEventListener("click", stopActiveVoiceInput);
 
-// Word counting listeners
-mainAnswerInput.addEventListener("input", () => {
-  updateWordCounter(mainAnswerInput, mainWordCounter);
-});
-followupAnswerInput.addEventListener("input", () => {
-  updateWordCounter(followupAnswerInput, followupWordCounter);
-});
+mainAnswerInput.addEventListener("input", () => updateWordCounter(mainAnswerInput, mainWordCounter));
+followupAnswerInput.addEventListener("input", () => updateWordCounter(followupAnswerInput, followupWordCounter));
 
-// -------------------------------------------------------------
-// Thinking Timer (30 seconds)
-// -------------------------------------------------------------
+// ==========================================================================
+// 30-Second Countdown Timer (Circular SVG Animation)
+// ==========================================================================
+function updateSvgTimer(seconds) {
+  timerSeconds.textContent = seconds;
+  const fraction = (30 - seconds) / 30;
+  const offset = TIMER_CIRCUMFERENCE * fraction;
+  timerSvgCircle.style.strokeDashoffset = offset;
+
+  if (seconds <= 10) {
+    timerSvgCircle.classList.add("urgent");
+  } else {
+    timerSvgCircle.classList.remove("urgent");
+  }
+}
+
 function stopThinkingTimer() {
   if (state.timerInterval) {
     clearInterval(state.timerInterval);
     state.timerInterval = null;
   }
-  thinkingTimerBox.classList.remove("timer-active");
-  thinkingTimerBox.classList.add("timer-ended");
-  timerSeconds.textContent = "0";
-  timerBarFill.style.width = "0%";
+  thinkingTimerBox.classList.remove("timer-pulse");
+  updateSvgTimer(0);
 }
 
 function startThinkingTimer() {
   stopThinkingTimer();
   state.secondsRemaining = 30;
-  thinkingTimerBox.classList.remove("timer-ended");
-  thinkingTimerBox.classList.add("timer-active");
-  timerSeconds.textContent = "30";
-  timerBarFill.style.width = "100%";
+  thinkingTimerBox.classList.add("timer-pulse");
+  updateSvgTimer(30);
 
   state.timerInterval = setInterval(() => {
     state.secondsRemaining--;
     if (state.secondsRemaining < 0) state.secondsRemaining = 0;
 
-    timerSeconds.textContent = String(state.secondsRemaining);
-    const pct = (state.secondsRemaining / 30) * 100;
-    timerBarFill.style.width = `${pct}%`;
+    updateSvgTimer(state.secondsRemaining);
 
     if (state.secondsRemaining <= 0) {
       stopThinkingTimer();
-      setStatus("Thinking time completed! Feel free to record or type your answer.", false);
+      setStatus("Thinking time up! Speak or type your answer.", false);
       mainAnswerInput.focus();
     }
   }, 1000);
@@ -300,27 +408,30 @@ function startThinkingTimer() {
 skipTimerBtn.addEventListener("click", () => {
   stopThinkingTimer();
   mainAnswerInput.focus();
-  setStatus("Timer skipped. Take your time to answer.", false);
+  setStatus("Timer skipped! Ready when you are.", false);
 });
 
-// -------------------------------------------------------------
-// STEP 1: START 5-QUESTION INTERVIEW
-// -------------------------------------------------------------
+// ==========================================================================
+// SCREEN 1 -> SCREEN 2: START CHALLENGE
+// ==========================================================================
 startInterviewBtn.addEventListener("click", async () => {
   const role = getSelectedRole();
   if (!role) {
-    setStatus("Please choose or enter a job role first.", true);
+    setStatus("Choose or type a job role first!", true);
     roleSelect.focus();
     return;
   }
 
   state.role = role;
-  state.difficulty = difficultySelect.value;
+  state.difficulty = difficultyInput.value;
   state.currentQuestionIndex = 0;
+  state.score = 0;
+  state.streak = 0;
+  state.maxStreak = 0;
   state.history = [];
 
   setStatus("");
-  setBusy(startInterviewBtn, true, "Preparing Question 1 of 5…");
+  setBusy(startInterviewBtn, true, "ENTERING ARENA…");
 
   try {
     const data = await requestJson("/api/question", {
@@ -335,36 +446,34 @@ startInterviewBtn.addEventListener("click", async () => {
   } catch (error) {
     setStatus(error.message, true);
   } finally {
-    setBusy(startInterviewBtn, false, "Start 5-Question Interview");
+    setBusy(startInterviewBtn, false, "START CHALLENGE ➔");
   }
 });
 
-function renderQuestionScreen(questionNumber, questionText) {
+function renderQuestionScreen(qNum, questionText) {
   stopActiveVoiceInput();
   setStatus("");
 
-  qProgressLabel.textContent = `Question ${questionNumber} of ${state.totalQuestions}`;
-  const progressPct = (questionNumber / state.totalQuestions) * 100;
+  qRoundLabel.textContent = `ROUND ${qNum} OF ${state.totalQuestions}`;
+  const progressPct = (qNum / state.totalQuestions) * 100;
   progressBarFill.style.width = `${progressPct}%`;
 
-  activeRoleBadge.textContent = state.role;
-  activeDiffBadge.textContent = state.difficulty;
   questionHeading.textContent = questionText;
-
   mainAnswerInput.value = "";
   updateWordCounter(mainAnswerInput, mainWordCounter);
 
+  updateHud(qNum);
   showScreen(questionCard);
   startThinkingTimer();
 }
 
-// -------------------------------------------------------------
-// STEP 2: SUBMIT MAIN ANSWER -> TRIGGER FOLLOW-UP
-// -------------------------------------------------------------
+// ==========================================================================
+// SCREEN 2 -> SCREEN 3: SUBMIT ANSWER -> GENERATE FOLLOW-UP
+// ==========================================================================
 submitMainAnswerBtn.addEventListener("click", async () => {
   const answer = mainAnswerInput.value.trim();
   if (!answer) {
-    setStatus("Please type or speak an answer before submitting.", true);
+    setStatus("Please speak or type an answer first!", true);
     mainAnswerInput.focus();
     return;
   }
@@ -374,7 +483,7 @@ submitMainAnswerBtn.addEventListener("click", async () => {
   state.currentAnswer = answer;
 
   setStatus("");
-  setBusy(submitMainAnswerBtn, true, "Interviewer is listening & formulating follow-up…");
+  setBusy(submitMainAnswerBtn, true, "INTERVIEWER FORMULATING FOLLOW-UP…");
 
   try {
     const data = await requestJson("/api/followup", {
@@ -389,7 +498,7 @@ submitMainAnswerBtn.addEventListener("click", async () => {
   } catch (error) {
     setStatus(error.message, true);
   } finally {
-    setBusy(submitMainAnswerBtn, false, "Submit Answer");
+    setBusy(submitMainAnswerBtn, false, "SUBMIT ANSWER ➔");
   }
 });
 
@@ -397,33 +506,34 @@ function renderFollowupScreen() {
   stopActiveVoiceInput();
   setStatus("");
 
-  followupStepBadge.textContent = `Question ${state.currentQuestionIndex + 1} Follow-Up`;
-  recapMainQuestion.textContent = `"${state.currentQuestion}"`;
+  const qNum = state.currentQuestionIndex + 1;
+  followupRecapQnum.textContent = qNum;
+  recapMainQuestion.textContent = `"${state.currentAnswer}"`;
   followupQuestionText.textContent = state.currentFollowUp;
 
   followupAnswerInput.value = "";
   updateWordCounter(followupAnswerInput, followupWordCounter);
 
+  updateHud(qNum);
   showScreen(followupCard);
   followupAnswerInput.focus();
 }
 
-// Reset/Retry Question button on Main Question screen
 retryQuestionBtn.addEventListener("click", () => {
   stopActiveVoiceInput();
   mainAnswerInput.value = "";
   updateWordCounter(mainAnswerInput, mainWordCounter);
   startThinkingTimer();
-  setStatus("Question reset. Take your 30 seconds to rethink.", false);
+  setStatus("Question reset. Take 30 seconds to rethink!", false);
 });
 
-// -------------------------------------------------------------
-// STEP 3: SUBMIT FOLLOW-UP ANSWER -> GET 3-PART FEEDBACK
-// -------------------------------------------------------------
+// ==========================================================================
+// SCREEN 3 -> SCREEN 4: SUBMIT FOLLOW-UP -> REVEAL RESULT CARD
+// ==========================================================================
 submitFollowupBtn.addEventListener("click", async () => {
   const followUpAnswer = followupAnswerInput.value.trim();
   if (!followUpAnswer) {
-    setStatus("Please type or speak your follow-up answer.", true);
+    setStatus("Please answer the follow-up question before continuing!", true);
     followupAnswerInput.focus();
     return;
   }
@@ -432,7 +542,7 @@ submitFollowupBtn.addEventListener("click", async () => {
   state.currentFollowUpAnswer = followUpAnswer;
 
   setStatus("");
-  setBusy(submitFollowupBtn, true, "Evaluating your answers & drafting 3-part feedback…");
+  setBusy(submitFollowupBtn, true, "EVALUATING ROUND PERFORMANCE…");
 
   try {
     const feedback = await requestJson("/api/feedback", {
@@ -444,7 +554,15 @@ submitFollowupBtn.addEventListener("click", async () => {
       followUpAnswer: state.currentFollowUpAnswer,
     });
 
-    // Save into history
+    // Gamification Scoring: Base XP + Effort Bonus
+    const totalWords = (state.currentAnswer + " " + state.currentFollowUpAnswer).trim().split(/\s+/).length;
+    const effortBonus = Math.min(50, Math.floor(totalWords / 3));
+    const roundPoints = 200 + effortBonus;
+
+    state.score += roundPoints;
+    state.streak++;
+    if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+
     state.history.push({
       questionNumber: state.currentQuestionIndex + 1,
       question: state.currentQuestion,
@@ -452,25 +570,29 @@ submitFollowupBtn.addEventListener("click", async () => {
       followUpQuestion: state.currentFollowUp,
       followUpAnswer: state.currentFollowUpAnswer,
       feedback,
+      roundPoints,
     });
 
-    renderFeedbackScreen(feedback);
+    bumpStreak();
+    triggerConfetti();
+    renderFeedbackScreen(feedback, roundPoints);
   } catch (error) {
     setStatus(error.message, true);
   } finally {
-    setBusy(submitFollowupBtn, false, "Submit & Get 3-Part Feedback");
+    setBusy(submitFollowupBtn, false, "REVEAL FEEDBACK 💥");
   }
 });
 
-function renderFeedbackScreen(feedback) {
+function renderFeedbackScreen(feedback, roundPoints) {
   stopActiveVoiceInput();
   setStatus("");
 
   const qNum = state.currentQuestionIndex + 1;
-  feedbackStepLabel.textContent = `Question ${qNum} of ${state.totalQuestions} Feedback`;
-  feedbackRoleBadge.textContent = `${state.role} • ${state.difficulty}`;
+  feedbackRoundNum.textContent = qNum;
+  feedbackXpPill.textContent = `+${roundPoints} XP EARNED`;
+  feedbackStreakPill.textContent = `🔥 STREAK: ${state.streak}`;
 
-  // 1. What Was Good
+  // 1. What was good (Green Card)
   feedbackGoodList.replaceChildren(
     ...(feedback.whatWasGood || []).map((text) => {
       const li = document.createElement("li");
@@ -479,7 +601,7 @@ function renderFeedbackScreen(feedback) {
     })
   );
 
-  // 2. What Was Missing
+  // 2. What was missing (Amber Card)
   feedbackMissingList.replaceChildren(
     ...(feedback.whatWasMissing || []).map((text) => {
       const li = document.createElement("li");
@@ -488,44 +610,42 @@ function renderFeedbackScreen(feedback) {
     })
   );
 
-  // 3. Stronger Sample Answer
+  // 3. Gold Standard Sample Answer (Purple Card)
   feedbackSampleAnswer.textContent = feedback.strongerSampleAnswer || "Sample answer unavailable.";
 
-  // Update Next Question button text if on final question
   if (state.currentQuestionIndex >= state.totalQuestions - 1) {
-    nextQuestionBtn.textContent = "Finish & View Final Summary 🎯";
+    nextQuestionBtn.innerHTML = `<span>FINISH CHALLENGE 🏆</span>`;
   } else {
-    nextQuestionBtn.textContent = `Next Question (${state.currentQuestionIndex + 2} of 5) →`;
+    nextQuestionBtn.innerHTML = `<span>NEXT ROUND (${state.currentQuestionIndex + 2}/5) ➔</span>`;
   }
 
+  updateHud(qNum);
   showScreen(feedbackCard);
 }
 
-// Retry this question from feedback screen
 retryCurrentQuestionBtn.addEventListener("click", () => {
-  // Remove the last recorded entry if retrying
   if (state.history.length > state.currentQuestionIndex) {
-    state.history.pop();
+    const last = state.history.pop();
+    state.score = Math.max(0, state.score - (last?.roundPoints || 200));
+    state.streak = Math.max(0, state.streak - 1);
   }
   renderQuestionScreen(state.currentQuestionIndex + 1, state.currentQuestion);
 });
 
-// -------------------------------------------------------------
-// STEP 4: NEXT QUESTION OR COMPLETE SESSION
-// -------------------------------------------------------------
+// ==========================================================================
+// SCREEN 4 -> SCREEN 5: ADVANCE TO NEXT QUESTION OR PODIUM
+// ==========================================================================
 nextQuestionBtn.addEventListener("click", async () => {
-  // If we just finished question 5 (index 4), proceed to Final Summary
   if (state.currentQuestionIndex >= state.totalQuestions - 1) {
     await completeInterviewSession();
     return;
   }
 
-  // Otherwise, load next question
   state.currentQuestionIndex++;
   const nextQNum = state.currentQuestionIndex + 1;
 
   setStatus("");
-  setBusy(nextQuestionBtn, true, `Loading Question ${nextQNum} of 5…`);
+  setBusy(nextQuestionBtn, true, `LOADING ROUND ${nextQNum}…`);
 
   try {
     const previousQuestions = state.history.map((h) => h.question);
@@ -540,22 +660,22 @@ nextQuestionBtn.addEventListener("click", async () => {
     renderQuestionScreen(nextQNum, data.question);
   } catch (error) {
     setStatus(error.message, true);
-    state.currentQuestionIndex--; // Revert index on error
+    state.currentQuestionIndex--;
   } finally {
-    setBusy(nextQuestionBtn, false, `Next Question (${state.currentQuestionIndex + 2} of 5) →`);
+    setBusy(nextQuestionBtn, false, `NEXT ROUND (${state.currentQuestionIndex + 2}/5) ➔`);
   }
 });
 
-// -------------------------------------------------------------
-// STEP 5: FINAL 5-QUESTION SUMMARY REPORT
-// -------------------------------------------------------------
+// ==========================================================================
+// SCREEN 5: FINAL SUMMARY / PODIUM SCREEN
+// ==========================================================================
 async function completeInterviewSession() {
   if (state.history.length === 0) {
     showScreen(setupCard);
     return;
   }
 
-  setStatus("Compiling your comprehensive mock interview coaching report…", false);
+  setStatus("Compiling your masterclass coaching report…", false);
 
   try {
     const summary = await requestJson("/api/summary", {
@@ -573,11 +693,17 @@ async function completeInterviewSession() {
 function renderFinalSummary(summary) {
   stopActiveVoiceInput();
   setStatus("");
+  triggerConfetti();
 
   summaryMetaSubtitle.textContent = `${state.role} • ${state.difficulty} • ${state.history.length} Questions Completed`;
-  summaryOverviewText.textContent = summary.overview || "Session complete.";
 
-  // Overall Strengths
+  finalXpNumber.textContent = state.score.toLocaleString();
+  finalStreakNumber.textContent = `${state.maxStreak} 🔥`;
+  finalQuestionsNumber.textContent = `${state.history.length}/${state.totalQuestions}`;
+
+  summaryOverviewText.textContent = summary.overview || "Interview completed successfully.";
+
+  // Strengths
   summaryStrengthsList.replaceChildren(
     ...(summary.overallStrengths || []).map((text) => {
       const li = document.createElement("li");
@@ -586,7 +712,7 @@ function renderFinalSummary(summary) {
     })
   );
 
-  // Key Improvement Areas
+  // Improvement Areas
   summaryImprovementsList.replaceChildren(
     ...(summary.improvementAreas || []).map((text) => {
       const li = document.createElement("li");
@@ -595,10 +721,10 @@ function renderFinalSummary(summary) {
     })
   );
 
-  // Recommended Next Practice
+  // Next Practice Suggestion
   summarySuggestionText.textContent = summary.nextPracticeSuggestion || "Continue practicing structured responses.";
 
-  // Render question-by-question review accordion
+  // Render Transcript Accordion
   transcriptAccordionContainer.replaceChildren(
     ...state.history.map((item, idx) => {
       const details = document.createElement("details");
@@ -608,13 +734,13 @@ function renderFinalSummary(summary) {
       const summaryTag = document.createElement("summary");
       summaryTag.className = "accordion-summary";
       summaryTag.innerHTML = `
-        <span>Question ${idx + 1}: ${escapeHtml(item.question.slice(0, 75))}…</span>
-        <span class="badge">Review</span>
+        <span>Round ${idx + 1}: ${escapeHtml(item.question.slice(0, 60))}…</span>
+        <span class="hud-chip q-chip">+${item.roundPoints} XP</span>
       `;
 
-      const content = document.createElement("div");
-      content.className = "accordion-content";
-      content.innerHTML = `
+      const body = document.createElement("div");
+      body.className = "accordion-body";
+      body.innerHTML = `
         <h4>Interview Question</h4>
         <p><strong>${escapeHtml(item.question)}</strong></p>
 
@@ -624,19 +750,19 @@ function renderFinalSummary(summary) {
         ${
           item.followUpQuestion
             ? `
-          <h4>Follow-Up Question</h4>
+          <h4>Interviewer Follow-Up</h4>
           <p><strong>${escapeHtml(item.followUpQuestion)}</strong></p>
-          <h4>Your Follow-Up Answer</h4>
+          <h4>Your Follow-Up Response</h4>
           <p>${escapeHtml(item.followUpAnswer || "None")}</p>
         `
             : ""
         }
 
-        <h4>Exemplary Sample Answer</h4>
-        <p class="sample-answer-content">${escapeHtml(item.feedback?.strongerSampleAnswer || "")}</p>
+        <h4>Gold Standard Sample Answer</h4>
+        <p class="sample-answer-text">${escapeHtml(item.feedback?.strongerSampleAnswer || "")}</p>
       `;
 
-      details.append(summaryTag, content);
+      details.append(summaryTag, body);
       return details;
     })
   );
@@ -650,31 +776,26 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// -------------------------------------------------------------
-// END INTERVIEW CONTROLS (Early Exit Handling)
-// -------------------------------------------------------------
+// ==========================================================================
+// Quit & Practice Again Handlers
+// ==========================================================================
 function confirmEndInterview() {
   stopActiveVoiceInput();
   stopThinkingTimer();
 
   if (state.history.length === 0) {
-    if (confirm("End this interview session and return to the setup screen?")) {
+    if (confirm("Exit to the lobby?")) {
       showScreen(setupCard);
     }
     return;
   }
 
-  if (
-    confirm(
-      `You have completed ${state.history.length} question(s). Would you like to end early and generate your coaching summary now?`
-    )
-  ) {
+  if (confirm(`You completed ${state.history.length} round(s). Reveal your final coaching report now?`)) {
     completeInterviewSession();
   }
 }
 
-endInterviewBtnTop?.addEventListener("click", confirmEndInterview);
-endInterviewBtnFollowup?.addEventListener("click", confirmEndInterview);
+hudQuitBtn?.addEventListener("click", confirmEndInterview);
 endInterviewBtnFeedback?.addEventListener("click", confirmEndInterview);
 
 restartInterviewBtn?.addEventListener("click", () => {
@@ -682,10 +803,13 @@ restartInterviewBtn?.addEventListener("click", () => {
   stopThinkingTimer();
   state.history = [];
   state.currentQuestionIndex = 0;
+  state.score = 0;
+  state.streak = 0;
+  state.maxStreak = 0;
   showScreen(setupCard);
 });
 
-// Keyboard Shortcut: Ctrl+Enter / Cmd+Enter to submit active answer
+// Keyboard Shortcut: Ctrl+Enter / Cmd+Enter
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
     if (!questionCard.hidden && !submitMainAnswerBtn.disabled) {

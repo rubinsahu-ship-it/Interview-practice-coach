@@ -3,340 +3,425 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Interview Practice Coach — Interactive Mock Interview</title>
+    <title>Interview Arena — Gamified Practice Coach</title>
     <link rel="stylesheet" href="/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,650&family=Source+Sans+3:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
-    <div class="page">
-      <header class="hero">
-        <p class="eyebrow">Interactive 5-Question Simulation</p>
-        <h1>Interview Practice Coach</h1>
-        <p class="lede">
-          Simulate an end-to-end interview: 30-second thinking timers, voice or
-          typed answers, adaptive AI follow-ups, and 3-part coaching feedback.
-          No hiring score.
-        </p>
+    <!-- Background Animated Geometry -->
+    <div class="ambient-bg" aria-hidden="true">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
+    </div>
+
+    <!-- Canvas for Celebratory Confetti -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="game-wrapper">
+      <!-- GAME HUD (VISIBLE IN QUIZ ROUNDS) -->
+      <header class="game-hud hidden" id="game-hud" aria-label="Game Status Bar">
+        <div class="hud-left">
+          <div class="hud-chip q-chip" id="hud-q-chip">
+            <span class="hud-chip-label">Q</span>
+            <span class="hud-chip-value" id="hud-q-val">1/5</span>
+          </div>
+          <div class="hud-role-tag">
+            <span class="hud-role-name" id="hud-role-name">Role</span>
+            <span class="hud-diff-badge" id="hud-diff-badge">Mid</span>
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <div class="hud-chip streak-chip" id="hud-streak-chip" title="Current answer streak">
+            <span class="streak-fire" aria-hidden="true">🔥</span>
+            <span class="hud-chip-value" id="hud-streak-val">0</span>
+            <span class="hud-chip-unit">STREAK</span>
+          </div>
+
+          <div class="hud-chip xp-chip" id="hud-xp-chip" title="Practice XP earned">
+            <span class="xp-icon" aria-hidden="true">⚡</span>
+            <span class="hud-chip-value" id="hud-xp-val">0</span>
+            <span class="hud-chip-unit">XP</span>
+          </div>
+
+          <button id="hud-quit-btn" class="hud-quit-btn" type="button" title="End Session" aria-label="End session">
+            ✕
+          </button>
+        </div>
       </header>
 
-      <main>
-        <!-- STEP 1: SETUP SCREEN -->
-        <section class="card" id="setup-card" aria-labelledby="setup-heading">
-          <div class="card-header">
-            <h2 id="setup-heading">1. Interview Setup</h2>
-            <span class="badge">5-Question Session</span>
-          </div>
+      <main class="game-main">
+        <!-- SCREEN 1: LOBBY / SETUP SCREEN -->
+        <section class="game-card lobby-card" id="setup-card" aria-labelledby="lobby-heading">
+          <div class="lobby-badge">⚡ 5-QUESTION QUIZ ARENA</div>
+          <h1 id="lobby-heading" class="lobby-title">Interview Arena</h1>
+          <p class="lobby-lede">
+            Step into the hot seat: 30-second thinking countdowns, voice or typed answers,
+            adaptive interviewer follow-ups, and instant coaching feedback.
+          </p>
 
-          <div class="form-group">
-            <label for="role-select">Job Role / Type</label>
-            <select id="role-select">
-              <option value="">Select a job role</option>
-              <option>Software Engineer</option>
-              <option>Product Manager</option>
-              <option>Data Analyst</option>
-              <option>UX Designer</option>
-              <option>Marketing Manager</option>
-              <option>Customer Success Manager</option>
-              <option value="custom">Other (type below)</option>
-            </select>
-            <label for="custom-role-input" class="hidden" id="custom-role-label">Custom Role</label>
-            <input
-              id="custom-role-input"
-              class="hidden"
-              type="text"
-              placeholder="e.g. Cloud Security Engineer, AI Research Scientist"
-              autocomplete="off"
-            />
-          </div>
+          <div class="lobby-form">
+            <div class="game-input-group">
+              <label for="role-select" class="game-label">Choose Your Target Role</label>
+              <div class="select-wrapper">
+                <select id="role-select" class="game-select">
+                  <option value="">🎯 Select a job role</option>
+                  <option value="Software Engineer">💻 Software Engineer</option>
+                  <option value="Product Manager">📦 Product Manager</option>
+                  <option value="Data Analyst">📊 Data Analyst</option>
+                  <option value="UX Designer">🎨 UX Designer</option>
+                  <option value="Marketing Manager">📣 Marketing Manager</option>
+                  <option value="Customer Success Manager">🤝 Customer Success Manager</option>
+                  <option value="custom">✍️ Other (Custom Role)</option>
+                </select>
+              </div>
+              <input
+                id="custom-role-input"
+                class="game-input custom-input hidden"
+                type="text"
+                placeholder="Type your role (e.g. AI Prompt Engineer, Site Reliability)"
+                autocomplete="off"
+              />
+            </div>
 
-          <div class="form-group">
-            <label for="difficulty-select">Difficulty Level</label>
-            <select id="difficulty-select">
-              <option value="Entry-Level">Entry-Level (0–2 years experience)</option>
-              <option value="Mid-Level" selected>Mid-Level (2–5 years experience)</option>
-              <option value="Senior / Lead">Senior / Lead (5+ years experience)</option>
-            </select>
-          </div>
+            <div class="game-input-group">
+              <label class="game-label">Select Difficulty</label>
+              <div class="diff-chips-row" role="radiogroup" aria-label="Difficulty Level">
+                <button type="button" class="diff-chip" data-value="Entry-Level">
+                  <span class="diff-dot green"></span>
+                  <span class="diff-name">Entry</span>
+                  <span class="diff-sub">0–2 yrs</span>
+                </button>
+                <button type="button" class="diff-chip active" data-value="Mid-Level">
+                  <span class="diff-dot yellow"></span>
+                  <span class="diff-name">Mid</span>
+                  <span class="diff-sub">2–5 yrs</span>
+                </button>
+                <button type="button" class="diff-chip" data-value="Senior / Lead">
+                  <span class="diff-dot red"></span>
+                  <span class="diff-name">Senior</span>
+                  <span class="diff-sub">5+ yrs</span>
+                </button>
+              </div>
+              <input type="hidden" id="difficulty-select" value="Mid-Level" />
+            </div>
 
-          <div class="setup-features-banner">
-            <div class="feature-item">
-              <span class="feature-icon">⏱️</span>
-              <div>
-                <strong>30s Thinking Timer</strong>
-                <p>Gather your thoughts before speaking or typing</p>
+            <!-- 4 Colorful Game Features Grid -->
+            <div class="game-features-grid">
+              <div class="game-feature-tile tile-red">
+                <div class="tile-icon">⏱️</div>
+                <div class="tile-content">
+                  <strong>30s Countdown</strong>
+                  <span>Structure thoughts before you answer</span>
+                </div>
+              </div>
+              <div class="game-feature-tile tile-blue">
+                <div class="tile-icon">🎙️</div>
+                <div class="tile-content">
+                  <strong>Voice or Text</strong>
+                  <span>Speak via mic or type freely</span>
+                </div>
+              </div>
+              <div class="game-feature-tile tile-yellow">
+                <div class="tile-icon">⚡</div>
+                <div class="tile-content">
+                  <strong>AI Follow-Ups</strong>
+                  <span>Live challenges based on your answer</span>
+                </div>
+              </div>
+              <div class="game-feature-tile tile-green">
+                <div class="tile-icon">🏆</div>
+                <div class="tile-content">
+                  <strong>3-Part Feedback</strong>
+                  <span>Strengths, omissions & masterclass sample</span>
+                </div>
               </div>
             </div>
-            <div class="feature-item">
-              <span class="feature-icon">🎙️</span>
-              <div>
-                <strong>Voice or Text</strong>
-                <p>Speak with real-time mic transcription or type freely</p>
-              </div>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">⚡</span>
-              <div>
-                <strong>Adaptive Follow-up</strong>
-                <p>AI probes deeper into your answer like a real interviewer</p>
-              </div>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">🎯</span>
-              <div>
-                <strong>3-Part Feedback</strong>
-                <p>What worked, what was missing & a stronger sample answer</p>
-              </div>
-            </div>
-          </div>
 
-          <button id="start-interview-btn" type="button" class="btn-primary">
-            Start 5-Question Interview
-          </button>
+            <button id="start-interview-btn" type="button" class="game-btn btn-hero">
+              <span>START CHALLENGE</span>
+              <span class="btn-arrow">➔</span>
+            </button>
+          </div>
         </section>
 
-        <!-- STEP 2: ACTIVE QUESTION & THINKING TIMER SCREEN -->
-        <section class="card" id="question-card" hidden aria-labelledby="question-heading">
-          <div class="interview-meta-header">
-            <div>
-              <span class="step-label" id="q-progress-label">Question 1 of 5</span>
-              <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="progress-bar-fill" style="width: 20%;"></div>
-              </div>
-            </div>
-            <div class="meta-badges">
-              <span class="badge" id="active-role-badge">Software Engineer</span>
-              <span class="badge badge-difficulty" id="active-diff-badge">Mid-Level</span>
-              <button id="end-interview-btn-top" type="button" class="btn-text danger-text" title="End interview early">End Interview</button>
+        <!-- SCREEN 2: ACTIVE QUESTION SCREEN -->
+        <section class="game-card question-screen-card" id="question-card" hidden aria-labelledby="question-heading">
+          <!-- Top Progress Tracker -->
+          <div class="question-top-bar">
+            <span class="round-indicator" id="q-round-label">ROUND 1 OF 5</span>
+            <div class="track-bar">
+              <div class="track-bar-fill" id="progress-bar-fill" style="width: 20%;"></div>
             </div>
           </div>
 
-          <div class="question-container">
-            <h2 id="question-heading" class="question-text"></h2>
+          <!-- Main Question Box -->
+          <div class="quiz-question-box">
+            <div class="question-tag">QUESTION</div>
+            <h2 id="question-heading" class="quiz-question-text">Loading question…</h2>
           </div>
 
-          <!-- THINKING TIMER SECTION -->
-          <div class="timer-box" id="thinking-timer-box">
-            <div class="timer-header">
-              <div class="timer-badge">
-                <span class="timer-icon">⏳</span>
-                <span>Thinking Time: <strong id="timer-seconds">30</strong>s</span>
+          <!-- Big Countdown Timer Component -->
+          <div class="timer-dial-container" id="thinking-timer-box">
+            <div class="timer-dial-inner">
+              <svg class="timer-svg" viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="timer-circle-bg" cx="50" cy="50" r="42"></circle>
+                <circle class="timer-circle-progress" id="timer-svg-circle" cx="50" cy="50" r="42"></circle>
+              </svg>
+              <div class="timer-number-box">
+                <span class="timer-number" id="timer-seconds">30</span>
+                <span class="timer-sub">SEC</span>
               </div>
-              <button id="skip-timer-btn" type="button" class="btn-subtle">
-                Ready to Answer (Skip Timer)
+            </div>
+            <div class="timer-callout">
+              <div class="timer-title">Thinking Time</div>
+              <p class="timer-desc">Organize your thoughts: Situation, Task, Action, Result.</p>
+              <button id="skip-timer-btn" type="button" class="btn-pill-subtle">
+                Ready to Answer ⚡
               </button>
             </div>
-            <div class="timer-bar-track">
-              <div class="timer-bar-fill" id="timer-bar-fill"></div>
-            </div>
-            <p class="timer-hint">Use this quiet time to structure your thoughts (STAR method: Situation, Task, Action, Result).</p>
           </div>
 
-          <!-- MAIN ANSWER INPUT SECTION -->
-          <div class="answer-section" id="main-answer-section">
-            <div class="textarea-header">
-              <label for="main-answer-input">Your Answer</label>
-              <div class="answer-tools">
-                <button id="main-mic-btn" type="button" class="mic-btn" aria-label="Toggle voice input">
-                  <span class="mic-icon">🎙️</span>
-                  <span class="mic-text">Answer by Voice</span>
+          <!-- Open Answer Zone -->
+          <div class="answer-zone" id="main-answer-zone">
+            <div class="answer-zone-header">
+              <label for="main-answer-input" class="zone-label">Your Response</label>
+              <div class="zone-tools">
+                <button id="main-mic-btn" type="button" class="btn-mic" aria-label="Answer by voice">
+                  <span class="mic-glyph">🎙️</span>
+                  <span class="mic-text">Answer with Voice</span>
                 </button>
-                <span class="word-counter" id="main-word-counter">0 words</span>
+                <span class="word-counter-pill" id="main-word-counter">0 words</span>
               </div>
             </div>
 
-            <div class="recording-banner hidden" id="main-recording-banner">
-              <span class="pulse-dot"></span>
-              <span>Listening to your voice… speak clearly. Transcribing into text below.</span>
-              <button type="button" id="main-stop-mic-btn" class="btn-tiny">Stop</button>
+            <!-- Listening Banner -->
+            <div class="listening-banner hidden" id="main-recording-banner">
+              <span class="live-pulse"></span>
+              <span>Listening… speak clearly into your mic. Click Stop when done.</span>
+              <button type="button" id="main-stop-mic-btn" class="btn-mini-stop">Stop</button>
             </div>
 
             <textarea
               id="main-answer-input"
-              rows="7"
-              placeholder="Speak using the microphone or type your answer here. Include concrete details, choices you made, and measurable impact."
+              class="game-textarea"
+              rows="6"
+              placeholder="Speak with the mic or type your answer here. Include concrete details, choices you made, and measurable impact..."
             ></textarea>
 
-            <div class="actions">
-              <button id="submit-main-answer-btn" type="button" class="btn-primary">
-                Submit Answer
+            <div class="card-action-row">
+              <button id="submit-main-answer-btn" type="button" class="game-btn btn-action-primary">
+                <span>SUBMIT ANSWER</span>
+                <span class="btn-arrow">➔</span>
               </button>
-              <button id="retry-question-btn" type="button" class="btn-ghost">
-                Reset & Retry Question
+              <button id="retry-question-btn" type="button" class="game-btn btn-action-ghost">
+                <span>↺ Retry</span>
               </button>
             </div>
           </div>
         </section>
 
-        <!-- STEP 3: FOLLOW-UP QUESTION SCREEN -->
-        <section class="card" id="followup-card" hidden aria-labelledby="followup-heading">
-          <div class="card-header">
-            <div>
-              <span class="followup-badge">⚡ Interviewer Follow-Up</span>
-              <h2 id="followup-heading" class="followup-title">Interviewer's Follow-Up Question</h2>
-            </div>
-            <span class="badge" id="followup-step-badge">Question 1 Follow-up</span>
+        <!-- SCREEN 3: ADAPTIVE FOLLOW-UP QUESTION SCREEN -->
+        <section class="game-card followup-screen-card" id="followup-card" hidden aria-labelledby="followup-heading">
+          <div class="followup-header-banner">
+            <span class="bonus-badge">⚡ BONUS CHALLENGE</span>
+            <h2 id="followup-heading" class="followup-title">Interviewer Follow-Up</h2>
           </div>
 
-          <div class="context-recap">
-            <p class="recap-label">Main Question:</p>
-            <p class="recap-text" id="recap-main-question"></p>
+          <div class="recap-quote-card">
+            <span class="recap-lead">Your Answer to Question <span id="followup-recap-qnum">1</span>:</span>
+            <p class="recap-body" id="recap-main-question"></p>
           </div>
 
-          <div class="followup-question-box">
-            <p class="followup-question-text" id="followup-question-text"></p>
+          <div class="followup-quiz-box">
+            <div class="followup-tag">INTERVIEWER ASKS:</div>
+            <p class="followup-text" id="followup-question-text">Formulating follow-up…</p>
           </div>
 
-          <div class="answer-section" id="followup-answer-section">
-            <div class="textarea-header">
-              <label for="followup-answer-input">Your Response to Follow-up</label>
-              <div class="answer-tools">
-                <button id="followup-mic-btn" type="button" class="mic-btn" aria-label="Toggle voice follow-up">
-                  <span class="mic-icon">🎙️</span>
-                  <span class="mic-text">Answer by Voice</span>
+          <div class="answer-zone" id="followup-answer-zone">
+            <div class="answer-zone-header">
+              <label for="followup-answer-input" class="zone-label">Your Follow-Up Response</label>
+              <div class="zone-tools">
+                <button id="followup-mic-btn" type="button" class="btn-mic" aria-label="Answer follow-up by voice">
+                  <span class="mic-glyph">🎙️</span>
+                  <span class="mic-text">Answer with Voice</span>
                 </button>
-                <span class="word-counter" id="followup-word-counter">0 words</span>
+                <span class="word-counter-pill" id="followup-word-counter">0 words</span>
               </div>
             </div>
 
-            <div class="recording-banner hidden" id="followup-recording-banner">
-              <span class="pulse-dot"></span>
-              <span>Listening to your voice… Click Stop when finished.</span>
-              <button type="button" id="followup-stop-mic-btn" class="btn-tiny">Stop</button>
+            <div class="listening-banner hidden" id="followup-recording-banner">
+              <span class="live-pulse"></span>
+              <span>Listening… speak clearly. Click Stop when done.</span>
+              <button type="button" id="followup-stop-mic-btn" class="btn-mini-stop">Stop</button>
             </div>
 
             <textarea
               id="followup-answer-input"
+              class="game-textarea"
               rows="5"
-              placeholder="Answer the follow-up question directly. Mention specific trade-offs, metrics, or clarifications."
+              placeholder="Address the follow-up question directly. Mention specific trade-offs, metrics, or clarifications..."
             ></textarea>
 
-            <div class="actions">
-              <button id="submit-followup-btn" type="button" class="btn-primary">
-                Submit & Get 3-Part Feedback
-              </button>
-              <button id="end-interview-btn-followup" type="button" class="btn-ghost danger-text">
-                End Interview Early
+            <div class="card-action-row">
+              <button id="submit-followup-btn" type="button" class="game-btn btn-action-primary">
+                <span>REVEAL FEEDBACK 💥</span>
               </button>
             </div>
           </div>
         </section>
 
-        <!-- STEP 4: 3-PART QUESTION FEEDBACK SCREEN -->
-        <section class="card" id="feedback-card" hidden aria-labelledby="feedback-heading">
-          <div class="card-header">
-            <div>
-              <span class="step-label" id="feedback-step-label">Feedback for Question 1</span>
-              <h2 id="feedback-heading">3-Part Coaching Feedback</h2>
+        <!-- SCREEN 4: GAME-STYLE 3-PART RESULT CARD -->
+        <section class="game-card feedback-screen-card" id="feedback-card" hidden aria-labelledby="feedback-heading">
+          <!-- Game Level Complete Header -->
+          <div class="feedback-result-hero">
+            <div class="result-badge-row">
+              <span class="xp-awarded-pill" id="feedback-xp-pill">+250 XP EARNED</span>
+              <span class="streak-awarded-pill" id="feedback-streak-pill">🔥 STREAK: 1</span>
             </div>
-            <span class="badge" id="feedback-role-badge">Mid-Level</span>
+            <h2 id="feedback-heading" class="result-title">Round <span id="feedback-round-num">1</span> Breakdown</h2>
+            <p class="result-subtitle">Here is your 3-part coaching debrief:</p>
           </div>
 
-          <!-- PART 1: WHAT WAS GOOD -->
-          <div class="feedback-block good-block">
-            <div class="block-title">
-              <span class="block-icon">✓</span>
-              <h3>1. What Was Good</h3>
-            </div>
-            <ul id="feedback-good-list" class="feedback-list"></ul>
+          <!-- 3 Big Colored Cards -->
+          <div class="feedback-cards-stack">
+            <!-- 1. What was good (Green Card) -->
+            <article class="result-block block-good">
+              <div class="block-header">
+                <span class="block-badge green-badge">✓ WHAT WORKED WELL</span>
+                <span class="block-hint">Strengths & impact points</span>
+              </div>
+              <ul id="feedback-good-list" class="block-list"></ul>
+            </article>
+
+            <!-- 2. What was missing (Amber/Orange Card) -->
+            <article class="result-block block-missing">
+              <div class="block-header">
+                <span class="block-badge orange-badge">! WHAT WAS MISSING</span>
+                <span class="block-hint">Omissions & level-up areas</span>
+              </div>
+              <ul id="feedback-missing-list" class="block-list"></ul>
+            </article>
+
+            <!-- 3. Stronger sample answer (Purple/Indigo Card) -->
+            <article class="result-block block-sample">
+              <div class="block-header">
+                <span class="block-badge purple-badge">🏆 GOLD STANDARD ANSWER</span>
+                <span class="block-hint">How a top-tier candidate responds</span>
+              </div>
+              <div class="sample-answer-text" id="feedback-sample-answer"></div>
+            </article>
           </div>
 
-          <!-- PART 2: WHAT WAS MISSING -->
-          <div class="feedback-block missing-block">
-            <div class="block-title">
-              <span class="block-icon">!</span>
-              <h3>2. What Was Missing</h3>
-            </div>
-            <ul id="feedback-missing-list" class="feedback-list"></ul>
-          </div>
-
-          <!-- PART 3: STRONGER SAMPLE ANSWER -->
-          <div class="feedback-block sample-block">
-            <div class="block-title">
-              <span class="block-icon">💡</span>
-              <h3>3. Stronger Sample Answer</h3>
-            </div>
-            <p class="sample-intro">Here is how a top-tier candidate answers this question and its follow-up effectively:</p>
-            <div class="sample-answer-content" id="feedback-sample-answer"></div>
-          </div>
-
-          <!-- FEEDBACK CONTROLS (Next, Retry, End) -->
-          <div class="feedback-actions-bar">
-            <button id="next-question-btn" type="button" class="btn-primary">
-              Next Question →
+          <!-- Action Buttons Bar -->
+          <div class="feedback-nav-bar">
+            <button id="next-question-btn" type="button" class="game-btn btn-hero btn-next-round">
+              <span>NEXT ROUND ➔</span>
             </button>
-            <button id="retry-current-question-btn" type="button" class="btn-ghost">
-              Retry This Question
-            </button>
-            <button id="end-interview-btn-feedback" type="button" class="btn-ghost danger-text">
-              End Interview & View Summary
-            </button>
+            <div class="feedback-secondary-actions">
+              <button id="retry-current-question-btn" type="button" class="game-btn btn-action-ghost">
+                <span>↺ Retry Question</span>
+              </button>
+              <button id="end-interview-btn-feedback" type="button" class="game-btn btn-action-ghost danger-btn">
+                <span>End Session</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <!-- STEP 5: FINAL 5-QUESTION SUMMARY SCREEN -->
-        <section class="card" id="final-summary-card" hidden aria-labelledby="summary-heading">
-          <div class="summary-hero">
-            <span class="summary-confetti">🎯</span>
-            <h2 id="summary-heading">Mock Interview Complete</h2>
-            <p class="summary-subtitle" id="summary-meta-subtitle">
-              5-Question Mock Interview Report
+        <!-- SCREEN 5: VICTORY PODIUM / FINAL SUMMARY SCREEN -->
+        <section class="game-card summary-screen-card" id="final-summary-card" hidden aria-labelledby="summary-heading">
+          <div class="podium-hero">
+            <div class="podium-icon" aria-hidden="true">🏆</div>
+            <h2 id="summary-heading" class="podium-title">Challenge Complete!</h2>
+            <p class="podium-subtitle" id="summary-meta-subtitle">
+              5-Question Mock Interview Mastery Report
             </p>
-            <div class="no-score-badge">
-              Pure Coaching Feedback • No Hiring / Rejection Score
+
+            <!-- Game Stats Row -->
+            <div class="scoreboard-stats-grid">
+              <div class="stat-box xp-stat-box">
+                <span class="stat-label">TOTAL XP</span>
+                <span class="stat-number" id="final-xp-number">1,250</span>
+                <span class="stat-unit">Practice Points</span>
+              </div>
+              <div class="stat-box streak-stat-box">
+                <span class="stat-label">MAX STREAK</span>
+                <span class="stat-number" id="final-streak-number">5 🔥</span>
+                <span class="stat-unit">In A Row</span>
+              </div>
+              <div class="stat-box count-stat-box">
+                <span class="stat-label">QUESTIONS</span>
+                <span class="stat-number" id="final-questions-number">5/5</span>
+                <span class="stat-unit">Completed</span>
+              </div>
+            </div>
+
+            <div class="reassurance-pill">
+              ⭐ Pure Coaching Feedback • No Hiring or Rejection Score
             </div>
           </div>
 
-          <div class="summary-overview-box">
-            <h3>Performance Overview</h3>
-            <p id="summary-overview-text"></p>
+          <!-- Overview Card -->
+          <div class="summary-card-block overview-block">
+            <div class="summary-block-title">
+              <span class="title-icon">📋</span>
+              <h3>Performance Synthesis</h3>
+            </div>
+            <p id="summary-overview-text" class="overview-body"></p>
           </div>
 
-          <div class="summary-columns">
-            <div class="summary-col strengths-col">
-              <div class="col-header">
-                <span class="col-icon">⭐</span>
+          <!-- 2 Columns: Strengths & Improvement Areas -->
+          <div class="summary-columns-grid">
+            <div class="summary-card-block strengths-block">
+              <div class="summary-block-title">
+                <span class="title-icon">🌟</span>
                 <h3>Overall Strengths</h3>
               </div>
-              <ul id="summary-strengths-list"></ul>
+              <ul id="summary-strengths-list" class="summary-list"></ul>
             </div>
 
-            <div class="summary-col improvements-col">
-              <div class="col-header">
-                <span class="col-icon">📈</span>
+            <div class="summary-card-block improvements-block">
+              <div class="summary-block-title">
+                <span class="title-icon">🎯</span>
                 <h3>Key Improvement Areas</h3>
               </div>
-              <ul id="summary-improvements-list"></ul>
+              <ul id="summary-improvements-list" class="summary-list"></ul>
             </div>
           </div>
 
-          <div class="practice-suggestion-box">
-            <div class="suggestion-header">
-              <span class="col-icon">🚀</span>
-              <h3>Recommended Next Practice</h3>
+          <!-- Boss Level Next Practice Suggestion -->
+          <div class="summary-card-block next-practice-block">
+            <div class="summary-block-title">
+              <span class="title-icon">🚀</span>
+              <h3>Next Practice Suggestion</h3>
             </div>
-            <p id="summary-suggestion-text"></p>
+            <p id="summary-suggestion-text" class="next-practice-body"></p>
           </div>
 
-          <!-- REVIEW ALL QUESTIONS ACCORDION -->
-          <div class="transcript-review">
-            <h3>Question-by-Question Review</h3>
-            <div id="transcript-accordion-container" class="accordion-container"></div>
+          <!-- Question-by-Question Review Accordion -->
+          <div class="review-accordion-section">
+            <h3 class="review-heading">Full Session Review</h3>
+            <div id="transcript-accordion-container" class="game-accordion-container"></div>
           </div>
 
-          <div class="summary-actions">
-            <button id="restart-interview-btn" type="button" class="btn-primary">
-              Start a New Mock Interview
+          <!-- Practice Again CTA -->
+          <div class="summary-footer-cta">
+            <button id="restart-interview-btn" type="button" class="game-btn btn-hero btn-play-again">
+              <span>PRACTICE AGAIN 🔄</span>
             </button>
           </div>
         </section>
 
-        <!-- STATUS & NOTIFICATION BANNER -->
-        <div class="status-banner" id="status" role="status" aria-live="polite"></div>
+        <!-- Status & Toast Notification -->
+        <div class="game-toast-banner" id="status" role="status" aria-live="polite"></div>
       </main>
     </div>
 
