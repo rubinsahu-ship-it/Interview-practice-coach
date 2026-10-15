@@ -417,7 +417,9 @@ skipTimerBtn.addEventListener("click", () => {
 startInterviewBtn.addEventListener("click", async () => {
   const role = getSelectedRole();
   if (!role) {
-    setStatus("Choose or type a job role first!", true);
+    setStatus("Please select or type your target job role to start practice.", true);
+    roleSelect.classList.add("field-attention");
+    setTimeout(() => roleSelect.classList.remove("field-attention"), 1600);
     roleSelect.focus();
     return;
   }
@@ -431,7 +433,7 @@ startInterviewBtn.addEventListener("click", async () => {
   state.history = [];
 
   setStatus("");
-  setBusy(startInterviewBtn, true, "ENTERING ARENA…");
+  setBusy(startInterviewBtn, true, "Starting Practice…");
 
   try {
     const data = await requestJson("/api/question", {
@@ -446,7 +448,7 @@ startInterviewBtn.addEventListener("click", async () => {
   } catch (error) {
     setStatus(error.message, true);
   } finally {
-    setBusy(startInterviewBtn, false, "START CHALLENGE ➔");
+    setBusy(startInterviewBtn, false, "Start Practice →");
   }
 });
 
@@ -820,4 +822,65 @@ document.addEventListener("keydown", (e) => {
       submitFollowupBtn.click();
     }
   }
+
+  if (e.key === "Escape" && demoModal && !demoModal.classList.contains("hidden")) {
+    closeDemoModal();
+  }
 });
+
+// ==========================================================================
+// Editorial Landing Page: Demo Modal & Nav Link Handlers
+// ==========================================================================
+const demoModal = document.querySelector("#demo-modal");
+const viewDemoBtn = document.querySelector("#view-demo-btn");
+const demoModalClose = document.querySelector("#demo-modal-close");
+const demoModalDismiss = document.querySelector("#demo-modal-dismiss");
+const demoModalStart = document.querySelector("#demo-modal-start");
+const navStartBtn = document.querySelector("#nav-start-btn");
+const navHowItWorks = document.querySelector("#nav-how-it-works");
+
+function openDemoModal() {
+  if (!demoModal) return;
+  demoModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeDemoModal() {
+  if (!demoModal) return;
+  demoModal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+viewDemoBtn?.addEventListener("click", openDemoModal);
+demoModalClose?.addEventListener("click", closeDemoModal);
+demoModalDismiss?.addEventListener("click", closeDemoModal);
+
+demoModal?.addEventListener("click", (e) => {
+  if (e.target === demoModal) {
+    closeDemoModal();
+  }
+});
+
+demoModalStart?.addEventListener("click", () => {
+  closeDemoModal();
+  const launcher = document.querySelector("#practice-launcher");
+  if (launcher) {
+    launcher.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  roleSelect?.focus();
+});
+
+navStartBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  const launcher = document.querySelector("#practice-launcher");
+  if (launcher) {
+    launcher.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  roleSelect?.focus();
+});
+
+navHowItWorks?.addEventListener("click", (e) => {
+  e.preventDefault();
+  openDemoModal();
+});
+

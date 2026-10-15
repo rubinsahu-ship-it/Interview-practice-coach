@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Interview Arena — Gamified Practice Coach</title>
+    <title>Interview Practice Coach — Practice Interviews. Build Confidence.</title>
     <link rel="stylesheet" href="/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -58,98 +58,296 @@
       </header>
 
       <main class="game-main">
-        <!-- SCREEN 1: LOBBY / SETUP SCREEN -->
-        <section class="game-card lobby-card" id="setup-card" aria-labelledby="lobby-heading">
-          <div class="lobby-badge">⚡ 5-QUESTION QUIZ ARENA</div>
-          <h1 id="lobby-heading" class="lobby-title">Interview Arena</h1>
-          <p class="lobby-lede">
-            Step into the hot seat: 30-second thinking countdowns, voice or typed answers,
-            adaptive interviewer follow-ups, and instant coaching feedback.
-          </p>
-
-          <div class="lobby-form">
-            <div class="game-input-group">
-              <label for="role-select" class="game-label">Choose Your Target Role</label>
-              <div class="select-wrapper">
-                <select id="role-select" class="game-select">
-                  <option value="">🎯 Select a job role</option>
-                  <option value="Software Engineer">💻 Software Engineer</option>
-                  <option value="Product Manager">📦 Product Manager</option>
-                  <option value="Data Analyst">📊 Data Analyst</option>
-                  <option value="UX Designer">🎨 UX Designer</option>
-                  <option value="Marketing Manager">📣 Marketing Manager</option>
-                  <option value="Customer Success Manager">🤝 Customer Success Manager</option>
-                  <option value="custom">✍️ Other (Custom Role)</option>
-                </select>
-              </div>
-              <input
-                id="custom-role-input"
-                class="game-input custom-input hidden"
-                type="text"
-                placeholder="Type your role (e.g. AI Prompt Engineer, Site Reliability)"
-                autocomplete="off"
-              />
-            </div>
-
-            <div class="game-input-group">
-              <label class="game-label">Select Difficulty</label>
-              <div class="diff-chips-row" role="radiogroup" aria-label="Difficulty Level">
-                <button type="button" class="diff-chip" data-value="Entry-Level">
-                  <span class="diff-dot green"></span>
-                  <span class="diff-name">Entry</span>
-                  <span class="diff-sub">0–2 yrs</span>
-                </button>
-                <button type="button" class="diff-chip active" data-value="Mid-Level">
-                  <span class="diff-dot yellow"></span>
-                  <span class="diff-name">Mid</span>
-                  <span class="diff-sub">2–5 yrs</span>
-                </button>
-                <button type="button" class="diff-chip" data-value="Senior / Lead">
-                  <span class="diff-dot red"></span>
-                  <span class="diff-name">Senior</span>
-                  <span class="diff-sub">5+ yrs</span>
-                </button>
-              </div>
-              <input type="hidden" id="difficulty-select" value="Mid-Level" />
-            </div>
-
-            <!-- 4 Colorful Game Features Grid -->
-            <div class="game-features-grid">
-              <div class="game-feature-tile tile-red">
-                <div class="tile-icon">⏱️</div>
-                <div class="tile-content">
-                  <strong>30s Countdown</strong>
-                  <span>Structure thoughts before you answer</span>
-                </div>
-              </div>
-              <div class="game-feature-tile tile-blue">
-                <div class="tile-icon">🎙️</div>
-                <div class="tile-content">
-                  <strong>Voice or Text</strong>
-                  <span>Speak via mic or type freely</span>
-                </div>
-              </div>
-              <div class="game-feature-tile tile-yellow">
-                <div class="tile-icon">⚡</div>
-                <div class="tile-content">
-                  <strong>AI Follow-Ups</strong>
-                  <span>Live challenges based on your answer</span>
-                </div>
-              </div>
-              <div class="game-feature-tile tile-green">
-                <div class="tile-icon">🏆</div>
-                <div class="tile-content">
-                  <strong>3-Part Feedback</strong>
-                  <span>Strengths, omissions & masterclass sample</span>
-                </div>
+        <!-- SCREEN 1: EDITORIAL LANDING PAGE / SETUP SCREEN -->
+        <section class="editorial-landing" id="setup-card" aria-labelledby="lobby-heading">
+          <!-- Small Top Navigation -->
+          <header class="editorial-nav" role="banner">
+            <div class="nav-brand">
+              <span class="brand-monogram" aria-hidden="true">IP</span>
+              <div class="brand-text-wrap">
+                <span class="brand-name">Interview <span class="brand-name-extra">Practice </span>Coach</span>
+                <span class="brand-sub">Editorial Edition</span>
               </div>
             </div>
 
-            <button id="start-interview-btn" type="button" class="game-btn btn-hero">
-              <span>START CHALLENGE</span>
-              <span class="btn-arrow">➔</span>
-            </button>
+            <nav class="nav-actions" aria-label="Main Navigation">
+              <a href="#features-strip" class="nav-link">Features</a>
+              <a href="#how-it-works" class="nav-link" id="nav-how-it-works">How It Works</a>
+              <a href="#practice-launcher" class="nav-cta-pill" id="nav-start-btn">Start Practice</a>
+            </nav>
+          </header>
+
+          <!-- Hero Section: Off-white/cream, black text, generous whitespace -->
+          <div class="editorial-hero">
+            <!-- Left Column: Typography & Practice Setup -->
+            <div class="hero-content">
+              <!-- Small Numbered Section Label "01" -->
+              <div class="section-label-row">
+                <span class="section-label-num">01</span>
+                <span class="section-label-divider" aria-hidden="true">—</span>
+                <span class="section-label-text">INTERVIEW COACHING PLATFORM</span>
+              </div>
+
+              <!-- Huge Serif Headline -->
+              <h1 id="lobby-heading" class="hero-headline">
+                Practice Interviews.<br />
+                <span class="headline-serif-italic">Build Confidence.</span>
+              </h1>
+
+              <!-- Short Supporting Line -->
+              <p class="hero-supporting-line">
+                Answer realistic questions, get instant feedback, and improve before the real interview.
+              </p>
+
+              <!-- Practice Configuration Launcher Card -->
+              <div class="practice-launcher-card" id="practice-launcher">
+                <div class="launcher-grid">
+                  <!-- Role Selector -->
+                  <div class="launcher-field role-field">
+                    <label for="role-select" class="field-label">
+                      <span>Target Role</span>
+                      <span class="field-sub">Choose or customize</span>
+                    </label>
+                    <div class="select-wrapper">
+                      <select id="role-select" class="editorial-select">
+                        <option value="">Select target role…</option>
+                        <option value="Software Engineer">💻 Software Engineer</option>
+                        <option value="Product Manager">📦 Product Manager</option>
+                        <option value="Data Analyst">📊 Data Analyst</option>
+                        <option value="UX Designer">🎨 UX Designer</option>
+                        <option value="Marketing Manager">📣 Marketing Manager</option>
+                        <option value="Customer Success Manager">🤝 Customer Success Manager</option>
+                        <option value="custom">✍️ Other (Custom Role)</option>
+                      </select>
+                    </div>
+                    <input
+                      id="custom-role-input"
+                      class="editorial-input custom-input hidden"
+                      type="text"
+                      placeholder="Type your role (e.g. AI Systems Architect, Mobile Lead)"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <!-- Difficulty Level Selector -->
+                  <div class="launcher-field diff-field">
+                    <label class="field-label">
+                      <span>Experience Level</span>
+                      <span class="field-sub">Adapts question depth</span>
+                    </label>
+                    <div class="diff-chips-row" role="radiogroup" aria-label="Difficulty Level">
+                      <button type="button" class="diff-chip" data-value="Entry-Level">
+                        <span class="diff-name">Entry</span>
+                        <span class="diff-sub">0–2 yrs</span>
+                      </button>
+                      <button type="button" class="diff-chip active" data-value="Mid-Level">
+                        <span class="diff-name">Mid</span>
+                        <span class="diff-sub">2–5 yrs</span>
+                      </button>
+                      <button type="button" class="diff-chip" data-value="Senior / Lead">
+                        <span class="diff-name">Senior</span>
+                        <span class="diff-sub">5+ yrs</span>
+                      </button>
+                    </div>
+                    <input type="hidden" id="difficulty-select" value="Mid-Level" />
+                  </div>
+                </div>
+
+                <!-- Clear CTA Buttons: Primary "Start Practice", Secondary "View Demo" -->
+                <div class="launcher-cta-row">
+                  <button id="start-interview-btn" type="button" class="cta-primary-btn">
+                    <span class="btn-text">Start Practice</span>
+                    <span class="btn-arrow" aria-hidden="true">→</span>
+                  </button>
+
+                  <button id="view-demo-btn" type="button" class="cta-secondary-btn">
+                    <svg class="cta-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span class="btn-text">View Demo</span>
+                  </button>
+                </div>
+
+                <div class="launcher-meta-row">
+                  <span class="meta-item"><span class="meta-dot"></span> 5 realistic questions</span>
+                  <span class="meta-sep" aria-hidden="true">•</span>
+                  <span class="meta-item"><span class="meta-dot"></span> Voice or typed answers</span>
+                  <span class="meta-sep" aria-hidden="true">•</span>
+                  <span class="meta-item"><span class="meta-dot"></span> Instant AI rubric debrief</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Large Right-Side Hero Visual (Abstract/Professional Coaching Illustration) -->
+            <div class="hero-visual-col" aria-label="Interview coaching illustration">
+              <div class="editorial-visual-frame">
+                <!-- Architectural Vector Illustration Canvas -->
+                <svg class="hero-illustration-svg" viewBox="0 0 540 540" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Professional candidate in coaching session">
+                  <defs>
+                    <!-- Ambient Gradients -->
+                    <linearGradient id="warmBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#F5F2EB" />
+                      <stop offset="100%" stop-color="#E8E2D5" />
+                    </linearGradient>
+                    <linearGradient id="archGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#EFE9DC" />
+                      <stop offset="100%" stop-color="#DED7C8" />
+                    </linearGradient>
+                    <linearGradient id="coatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#222026" />
+                      <stop offset="100%" stop-color="#141316" />
+                    </linearGradient>
+                    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#D4B08C" />
+                      <stop offset="100%" stop-color="#B8926D" />
+                    </linearGradient>
+                    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#2D2926" />
+                      <stop offset="100%" stop-color="#1A1816" />
+                    </linearGradient>
+                    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#D4AF37" />
+                      <stop offset="100%" stop-color="#AA820A" />
+                    </linearGradient>
+                    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1a1816" flood-opacity="0.08" />
+                    </filter>
+                  </defs>
+
+                  <!-- Card Base & Inner Arch -->
+                  <rect width="540" height="540" rx="28" fill="url(#warmBg)" stroke="#E4DCD0" stroke-width="1.5" />
+                  
+                  <!-- Architectural Classical Arch Motif -->
+                  <path d="M120 540 V 230 A 150 150 0 0 1 420 230 V 540 Z" fill="url(#archGrad)" opacity="0.85" />
+                  <path d="M140 540 V 240 A 130 130 0 0 1 400 240 V 540 Z" fill="none" stroke="#FAF7F2" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
+
+                  <!-- Background Perspective Grid Lines -->
+                  <line x1="60" y1="460" x2="480" y2="460" stroke="#D8CEBF" stroke-width="1" />
+                  <line x1="90" y1="490" x2="450" y2="490" stroke="#D8CEBF" stroke-width="1" />
+
+                  <!-- Modern Stylized Candidate Portrait Silhouette -->
+                  <g class="portrait-group" transform="translate(140, 160)">
+                    <!-- Candidate Shoulders / Blazer -->
+                    <path d="M130 260 C70 270 10 310 -30 380 L290 380 C250 310 190 270 130 260 Z" fill="url(#coatGrad)" />
+                    <!-- Crisp White Shirt Collar -->
+                    <polygon points="130,260 110,290 130,340 150,290" fill="#FAF8F5" />
+                    <line x1="130" y1="290" x2="130" y2="350" stroke="#D8D2C6" stroke-width="1.5" />
+
+                    <!-- Neck -->
+                    <rect x="112" y="195" width="36" height="70" rx="8" fill="url(#skinGrad)" />
+
+                    <!-- Candidate Head / Profile -->
+                    <ellipse cx="130" cy="145" rx="52" ry="62" fill="url(#skinGrad)" />
+                    <!-- Structured Hair Silhouette -->
+                    <path d="M78 135 C75 75 125 50 170 65 C190 75 192 105 185 130 C175 90 140 75 105 95 C85 105 80 120 78 135 Z" fill="url(#hairGrad)" />
+
+                    <!-- Sleek Minimalist Ear & Coaching Headset -->
+                    <circle cx="128" cy="150" r="12" fill="#C49F7B" />
+                    <!-- Modern Coaching Headset & Boom Mic -->
+                    <path d="M128 100 C175 100 178 140 178 160 C178 180 160 200 148 202" fill="none" stroke="#222026" stroke-width="3" stroke-linecap="round" />
+                    <circle cx="145" cy="202" r="4" fill="url(#goldGrad)" />
+                  </g>
+
+                  <!-- Live Audio Waveform Simulation in SVG -->
+                  <g class="audio-wave-group" transform="translate(180, 430)">
+                    <rect x="0" y="-12" width="4" height="24" rx="2" fill="#1A191D" class="svg-wave-bar b1" />
+                    <rect x="10" y="-22" width="4" height="44" rx="2" fill="#1A191D" class="svg-wave-bar b2" />
+                    <rect x="20" y="-32" width="4" height="64" rx="2" fill="#1A191D" class="svg-wave-bar b3" />
+                    <rect x="30" y="-18" width="4" height="36" rx="2" fill="#1A191D" class="svg-wave-bar b4" />
+                    <rect x="40" y="-28" width="4" height="56" rx="2" fill="#1A191D" class="svg-wave-bar b5" />
+                    <rect x="50" y="-14" width="4" height="28" rx="2" fill="#1A191D" class="svg-wave-bar b6" />
+                    <rect x="60" y="-24" width="4" height="48" rx="2" fill="#1A191D" class="svg-wave-bar b7" />
+                    <rect x="70" y="-10" width="4" height="20" rx="2" fill="#1A191D" class="svg-wave-bar b8" />
+                  </g>
+                </svg>
+
+                <!-- Floating Glass Coating Cards (Layered on top of Visual) -->
+                <!-- 1. Top Assessment Chip -->
+                <div class="visual-card-pill pill-top">
+                  <span class="pulse-beacon" aria-hidden="true"></span>
+                  <div class="pill-body">
+                    <span class="pill-label">RUBRIC ENGINE ACTIVE</span>
+                    <span class="pill-value">STAR Framework Detected</span>
+                  </div>
+                </div>
+
+                <!-- 2. Delivery Confidence Gauge Chip -->
+                <div class="visual-card-pill pill-bottom-left">
+                  <div class="confidence-circle" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" class="conf-svg">
+                      <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path class="circle-fill" stroke-dasharray="94, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <span class="conf-num">94%</span>
+                  </div>
+                  <div class="pill-col">
+                    <span class="conf-title">Delivery Confidence</span>
+                    <span class="conf-desc">High precision • 0 filler words</span>
+                  </div>
+                </div>
+
+                <!-- 3. Floating Prompt Snippet Chip -->
+                <div class="visual-card-pill pill-top-right">
+                  <span class="prompt-chip-kicker">INTERVIEW QUESTION</span>
+                  <p class="prompt-chip-quote">"Describe a high-stakes trade-off you navigated."</p>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <!-- Bottom Dark Strip with 3 Short Feature Cards -->
+          <section class="bottom-dark-strip" id="features-strip">
+            <div class="dark-strip-container">
+              <div class="dark-strip-header">
+                <span class="strip-kicker">ENGINEERED FOR MASTERY</span>
+                <h2 class="strip-headline">High-stakes interview preparation, elevated.</h2>
+              </div>
+
+              <!-- 3 Short Feature Cards -->
+              <div class="dark-features-grid">
+                <!-- Card 1: Role-based questions -->
+                <article class="dark-feature-card">
+                  <div class="card-meta-row">
+                    <span class="card-num-kicker">01</span>
+                    <span class="card-badge">Targeted Scenarios</span>
+                  </div>
+                  <h3 class="card-feature-title">Role-based questions</h3>
+                  <p class="card-feature-desc">
+                    Realistic behavioral and situational questions calibrated specifically to your chosen domain, from engineering systems to product trade-offs.
+                  </p>
+                </article>
+
+                <!-- Card 2: Instant feedback -->
+                <article class="dark-feature-card">
+                  <div class="card-meta-row">
+                    <span class="card-num-kicker">02</span>
+                    <span class="card-badge">3-Part Debrief</span>
+                  </div>
+                  <h3 class="card-feature-title">Instant feedback</h3>
+                  <p class="card-feature-desc">
+                    Immediate coaching debriefs after every round detailing what worked well, what was omitted, and a top-tier gold standard model answer.
+                  </p>
+                </article>
+
+                <!-- Card 3: Track progress -->
+                <article class="dark-feature-card">
+                  <div class="card-meta-row">
+                    <span class="card-num-kicker">03</span>
+                    <span class="card-badge">Skill Analytics</span>
+                  </div>
+                  <h3 class="card-feature-title">Track progress</h3>
+                  <p class="card-feature-desc">
+                    Hone responses with 30s structured thinking countdowns, answer streaks, practice XP points, and a full session performance synthesis.
+                  </p>
+                </article>
+              </div>
+
+              <div class="dark-strip-footer">
+                <span class="footer-note">Interview Practice Coach • Constructive AI Rubric Feedback • No Hiring Rejection Score</span>
+                <a href="#practice-launcher" class="footer-top-link">Configure Practice Session ↑</a>
+              </div>
+            </div>
+          </section>
         </section>
 
         <!-- SCREEN 2: ACTIVE QUESTION SCREEN -->
@@ -419,6 +617,73 @@
             </button>
           </div>
         </section>
+
+        <!-- INTERACTIVE DEMO PREVIEW MODAL -->
+        <div class="demo-modal-backdrop hidden" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title">
+          <div class="demo-modal-window">
+            <div class="demo-modal-header">
+              <div class="demo-modal-tag">LIVE DEMO WALKTHROUGH</div>
+              <h3 id="demo-modal-title" class="demo-modal-heading">How Coaching Works in Real Time</h3>
+              <button type="button" class="demo-modal-close-btn" id="demo-modal-close" aria-label="Close demo preview">✕</button>
+            </div>
+
+            <div class="demo-modal-body">
+              <!-- Demo Step 1: Scenario Question -->
+              <div class="demo-flow-block">
+                <span class="demo-flow-kicker">STEP 1 • REALISTIC ROLE-BASED QUESTION</span>
+                <div class="demo-q-box">
+                  <span class="demo-role-badge">Senior Product Manager • Round 1</span>
+                  <p class="demo-q-text">
+                    "Tell me about a high-stakes product decision you made where user research directly conflicted with technical constraints and revenue goals."
+                  </p>
+                </div>
+              </div>
+
+              <!-- Demo Step 2: Candidate Answer -->
+              <div class="demo-flow-block">
+                <span class="demo-flow-kicker">STEP 2 • CANDIDATE RESPONSE (VOICE / TEXT)</span>
+                <div class="demo-ans-box">
+                  <div class="demo-voice-sim">
+                    <span class="voice-sim-dot"></span>
+                    <span>Transcribed Audio Input (92 words)</span>
+                  </div>
+                  <p class="demo-ans-text">
+                    "At my previous fintech startup, users strongly requested custom real-time transaction reports, but our batch pipeline couldn't handle live aggregation without tripling cloud compute. I analyzed query patterns, found 85% of exports only needed 15-minute granularity, and negotiated a phased rollout with tiered caching. This reduced peak server load by 42% while retaining 98% of target enterprise accounts."
+                  </p>
+                </div>
+              </div>
+
+              <!-- Demo Step 3: Instant 3-Part Feedback -->
+              <div class="demo-flow-block">
+                <span class="demo-flow-kicker">STEP 3 • INSTANT 3-PART COACHING DEBRIEF</span>
+                <div class="demo-feedback-grid">
+                  <div class="demo-fb-card fb-good">
+                    <span class="fb-badge good-badge">✓ WHAT WORKED WELL</span>
+                    <p>Exceptional STAR framework execution, concrete metrics (42% compute reduction, 98% retention), and proactive compromise.</p>
+                  </div>
+                  <div class="demo-fb-card fb-missing">
+                    <span class="fb-badge missing-badge">! WHAT WAS MISSING</span>
+                    <p>Omitted mentioning how you aligned cross-functional sales and customer success teams before announcing the 15-minute delay.</p>
+                  </div>
+                  <div class="demo-fb-card fb-sample">
+                    <span class="fb-badge sample-badge">🏆 GOLD STANDARD BENCHMARK</span>
+                    <p>"To safeguard stability while satisfying clients, I partnered with Sales leadership to co-author customer communications, framing tiered caching as an enterprise performance upgrade..."</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="demo-modal-footer">
+              <button type="button" class="cta-secondary-btn" id="demo-modal-dismiss">
+                <span>Close Preview</span>
+              </button>
+              <button type="button" class="cta-primary-btn" id="demo-modal-start">
+                <span>Try Live Session Now</span>
+                <span class="btn-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- Status & Toast Notification -->
         <div class="game-toast-banner" id="status" role="status" aria-live="polite"></div>
