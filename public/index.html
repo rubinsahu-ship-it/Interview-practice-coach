@@ -111,13 +111,15 @@
                     <div class="select-wrapper">
                       <select id="role-select" class="editorial-select">
                         <option value="">Select target role…</option>
-                        <option value="Software Engineer">💻 Software Engineer</option>
-                        <option value="Product Manager">📦 Product Manager</option>
-                        <option value="Data Analyst">📊 Data Analyst</option>
-                        <option value="UX Designer">🎨 UX Designer</option>
-                        <option value="Marketing Manager">📣 Marketing Manager</option>
-                        <option value="Customer Success Manager">🤝 Customer Success Manager</option>
-                        <option value="custom">✍️ Other (Custom Role)</option>
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="Data Analyst">Data Analyst</option>
+                        <option value="Business Analyst">Business Analyst</option>
+                        <option value="HR Executive / Recruiter">HR Executive / Recruiter</option>
+                        <option value="UX Designer">UX Designer</option>
+                        <option value="Marketing Manager">Marketing Manager</option>
+                        <option value="Customer Success Manager">Customer Success Manager</option>
+                        <option value="custom">Other (Custom Role)</option>
                       </select>
                     </div>
                     <input
@@ -171,125 +173,68 @@
                 <div class="launcher-meta-row">
                   <span class="meta-item"><span class="meta-dot"></span> 5 realistic questions</span>
                   <span class="meta-sep" aria-hidden="true">•</span>
-                  <span class="meta-item"><span class="meta-dot"></span> Voice or typed answers</span>
+                  <span class="meta-item"><span class="meta-dot"></span> Focused typed practice</span>
                   <span class="meta-sep" aria-hidden="true">•</span>
                   <span class="meta-item"><span class="meta-dot"></span> Instant AI rubric debrief</span>
                 </div>
               </div>
             </div>
 
-            <!-- Right Column: Large Right-Side Hero Visual (Abstract/Professional Coaching Illustration) -->
-            <div class="hero-visual-col" aria-label="Interview coaching illustration">
-              <div class="editorial-visual-frame">
-                <!-- Architectural Vector Illustration Canvas -->
-                <svg class="hero-illustration-svg" viewBox="0 0 540 540" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Professional candidate in coaching session">
-                  <defs>
-                    <!-- Ambient Gradients -->
-                    <linearGradient id="warmBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#F5F2EB" />
-                      <stop offset="100%" stop-color="#E8E2D5" />
-                    </linearGradient>
-                    <linearGradient id="archGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stop-color="#EFE9DC" />
-                      <stop offset="100%" stop-color="#DED7C8" />
-                    </linearGradient>
-                    <linearGradient id="coatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#222026" />
-                      <stop offset="100%" stop-color="#141316" />
-                    </linearGradient>
-                    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#D4B08C" />
-                      <stop offset="100%" stop-color="#B8926D" />
-                    </linearGradient>
-                    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#2D2926" />
-                      <stop offset="100%" stop-color="#1A1816" />
-                    </linearGradient>
-                    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#D4AF37" />
-                      <stop offset="100%" stop-color="#AA820A" />
-                    </linearGradient>
-                    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
-                      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1a1816" flood-opacity="0.08" />
-                    </filter>
-                  </defs>
-
-                  <!-- Card Base & Inner Arch -->
-                  <rect width="540" height="540" rx="28" fill="url(#warmBg)" stroke="#E4DCD0" stroke-width="1.5" />
-                  
-                  <!-- Architectural Classical Arch Motif -->
-                  <path d="M120 540 V 230 A 150 150 0 0 1 420 230 V 540 Z" fill="url(#archGrad)" opacity="0.85" />
-                  <path d="M140 540 V 240 A 130 130 0 0 1 400 240 V 540 Z" fill="none" stroke="#FAF7F2" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
-
-                  <!-- Background Perspective Grid Lines -->
-                  <line x1="60" y1="460" x2="480" y2="460" stroke="#D8CEBF" stroke-width="1" />
-                  <line x1="90" y1="490" x2="450" y2="490" stroke="#D8CEBF" stroke-width="1" />
-
-                  <!-- Modern Stylized Candidate Portrait Silhouette -->
-                  <g class="portrait-group" transform="translate(140, 160)">
-                    <!-- Candidate Shoulders / Blazer -->
-                    <path d="M130 260 C70 270 10 310 -30 380 L290 380 C250 310 190 270 130 260 Z" fill="url(#coatGrad)" />
-                    <!-- Crisp White Shirt Collar -->
-                    <polygon points="130,260 110,290 130,340 150,290" fill="#FAF8F5" />
-                    <line x1="130" y1="290" x2="130" y2="350" stroke="#D8D2C6" stroke-width="1.5" />
-
-                    <!-- Neck -->
-                    <rect x="112" y="195" width="36" height="70" rx="8" fill="url(#skinGrad)" />
-
-                    <!-- Candidate Head / Profile -->
-                    <ellipse cx="130" cy="145" rx="52" ry="62" fill="url(#skinGrad)" />
-                    <!-- Structured Hair Silhouette -->
-                    <path d="M78 135 C75 75 125 50 170 65 C190 75 192 105 185 130 C175 90 140 75 105 95 C85 105 80 120 78 135 Z" fill="url(#hairGrad)" />
-
-                    <!-- Sleek Minimalist Ear & Coaching Headset -->
-                    <circle cx="128" cy="150" r="12" fill="#C49F7B" />
-                    <!-- Modern Coaching Headset & Boom Mic -->
-                    <path d="M128 100 C175 100 178 140 178 160 C178 180 160 200 148 202" fill="none" stroke="#222026" stroke-width="3" stroke-linecap="round" />
-                    <circle cx="145" cy="202" r="4" fill="url(#goldGrad)" />
-                  </g>
-
-                  <!-- Live Audio Waveform Simulation in SVG -->
-                  <g class="audio-wave-group" transform="translate(180, 430)">
-                    <rect x="0" y="-12" width="4" height="24" rx="2" fill="#1A191D" class="svg-wave-bar b1" />
-                    <rect x="10" y="-22" width="4" height="44" rx="2" fill="#1A191D" class="svg-wave-bar b2" />
-                    <rect x="20" y="-32" width="4" height="64" rx="2" fill="#1A191D" class="svg-wave-bar b3" />
-                    <rect x="30" y="-18" width="4" height="36" rx="2" fill="#1A191D" class="svg-wave-bar b4" />
-                    <rect x="40" y="-28" width="4" height="56" rx="2" fill="#1A191D" class="svg-wave-bar b5" />
-                    <rect x="50" y="-14" width="4" height="28" rx="2" fill="#1A191D" class="svg-wave-bar b6" />
-                    <rect x="60" y="-24" width="4" height="48" rx="2" fill="#1A191D" class="svg-wave-bar b7" />
-                    <rect x="70" y="-10" width="4" height="20" rx="2" fill="#1A191D" class="svg-wave-bar b8" />
-                  </g>
-                </svg>
-
-                <!-- Floating Glass Coating Cards (Layered on top of Visual) -->
-                <!-- 1. Top Assessment Chip -->
-                <div class="visual-card-pill pill-top">
-                  <span class="pulse-beacon" aria-hidden="true"></span>
-                  <div class="pill-body">
-                    <span class="pill-label">RUBRIC ENGINE ACTIVE</span>
-                    <span class="pill-value">STAR Framework Detected</span>
+            <!-- Right Column: Simple Interview Practice Card Mockup -->
+            <div class="hero-visual-col" aria-label="Interactive interview practice mockup">
+              <div class="practice-mockup-frame">
+                <!-- Mockup Window Top Bar -->
+                <div class="mockup-window-header">
+                  <div class="mockup-window-controls" aria-hidden="true">
+                    <span class="mockup-dot dot-1"></span>
+                    <span class="mockup-dot dot-2"></span>
+                    <span class="mockup-dot dot-3"></span>
+                  </div>
+                  <div class="mockup-window-title">
+                    <span class="mockup-title-step">ROUND 1 OF 5</span>
+                    <span class="mockup-title-sep">•</span>
+                    <span class="mockup-title-role">ACTIVE PRACTICE</span>
+                  </div>
+                  <div class="mockup-window-timer">
+                    <span class="mockup-timer-icon" aria-hidden="true">⏱</span>
+                    <span>30s Pacing</span>
                   </div>
                 </div>
 
-                <!-- 2. Delivery Confidence Gauge Chip -->
-                <div class="visual-card-pill pill-bottom-left">
-                  <div class="confidence-circle" aria-hidden="true">
-                    <svg viewBox="0 0 36 36" class="conf-svg">
-                      <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      <path class="circle-fill" stroke-dasharray="94, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <span class="conf-num">94%</span>
+                <!-- Mockup Content Stack -->
+                <div class="mockup-stack">
+                  <!-- 1. Question Box -->
+                  <div class="mockup-question-box">
+                    <div class="mockup-box-kicker">
+                      <span class="kicker-tag">QUESTION</span>
+                      <span class="kicker-type">Behavioral & Scenarios</span>
+                    </div>
+                    <p class="mockup-question-text">
+                      "Tell me about a high-stakes decision you made where user feedback conflicted with engineering constraints."
+                    </p>
                   </div>
-                  <div class="pill-col">
-                    <span class="conf-title">Delivery Confidence</span>
-                    <span class="conf-desc">High precision • 0 filler words</span>
-                  </div>
-                </div>
 
-                <!-- 3. Floating Prompt Snippet Chip -->
-                <div class="visual-card-pill pill-top-right">
-                  <span class="prompt-chip-kicker">INTERVIEW QUESTION</span>
-                  <p class="prompt-chip-quote">"Describe a high-stakes trade-off you navigated."</p>
+                  <!-- 2. Typed Answer Box -->
+                  <div class="mockup-answer-box">
+                    <div class="mockup-answer-header">
+                      <span class="mockup-answer-label">YOUR TYPED RESPONSE</span>
+                      <span class="mockup-word-pill">68 words</span>
+                    </div>
+                    <p class="mockup-answer-text">
+                      "When enterprise users demanded instant audit exports, our database cluster was already at 85% capacity. Instead of an unstable query patch, I analyzed access telemetry, discovered 90% only needed 15-minute intervals, and negotiated an asynchronous export queue. This safeguarded uptime while meeting SLA expectations."<span class="mockup-cursor" aria-hidden="true"></span>
+                    </p>
+                  </div>
+
+                  <!-- 3. Short Feedback Card -->
+                  <div class="mockup-feedback-card">
+                    <div class="mockup-fb-header">
+                      <span class="mockup-fb-badge">✓ WHAT WORKED WELL</span>
+                      <span class="mockup-fb-score">Clear Structure</span>
+                    </div>
+                    <p class="mockup-fb-text">
+                      Strong STAR framework with measurable telemetry (85% capacity, 90% user need). Articulates engineering trade-offs clearly without unnecessary jargon.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -299,8 +244,8 @@
           <section class="bottom-dark-strip" id="features-strip">
             <div class="dark-strip-container">
               <div class="dark-strip-header">
-                <span class="strip-kicker">ENGINEERED FOR MASTERY</span>
-                <h2 class="strip-headline">High-stakes interview preparation, elevated.</h2>
+                <span class="strip-kicker">HONEST, FOCUSED COACHING</span>
+                <h2 class="strip-headline">Realistic interview preparation, elevated.</h2>
               </div>
 
               <!-- 3 Short Feature Cards -->
@@ -329,21 +274,21 @@
                   </p>
                 </article>
 
-                <!-- Card 3: Track progress -->
+                <!-- Card 3: Clear feedback -->
                 <article class="dark-feature-card">
                   <div class="card-meta-row">
                     <span class="card-num-kicker">03</span>
-                    <span class="card-badge">Skill Analytics</span>
+                    <span class="card-badge">Actionable Guidance</span>
                   </div>
-                  <h3 class="card-feature-title">Track progress</h3>
+                  <h3 class="card-feature-title">Clear feedback</h3>
                   <p class="card-feature-desc">
-                    Hone responses with 30s structured thinking countdowns, answer streaks, practice XP points, and a full session performance synthesis.
+                    Receive focused debriefs highlighting what worked well, what was missing, and concrete ways to sharpen your structure, clarity, and impact.
                   </p>
                 </article>
               </div>
 
               <div class="dark-strip-footer">
-                <span class="footer-note">Interview Practice Coach • Constructive AI Rubric Feedback • No Hiring Rejection Score</span>
+                <span class="footer-note">Interview Practice Coach • Constructive AI Rubric Feedback • Typed Responses</span>
                 <a href="#practice-launcher" class="footer-top-link">Configure Practice Session ↑</a>
               </div>
             </div>
@@ -411,7 +356,7 @@
               id="main-answer-input"
               class="game-textarea"
               rows="6"
-              placeholder="Speak with the mic or type your answer here. Include concrete details, choices you made, and measurable impact..."
+              placeholder="Type your answer here. Include concrete details, choices you made, and measurable impact..."
             ></textarea>
 
             <div class="card-action-row">
@@ -641,11 +586,11 @@
 
               <!-- Demo Step 2: Candidate Answer -->
               <div class="demo-flow-block">
-                <span class="demo-flow-kicker">STEP 2 • CANDIDATE RESPONSE (VOICE / TEXT)</span>
+                <span class="demo-flow-kicker">STEP 2 • CANDIDATE WRITTEN RESPONSE</span>
                 <div class="demo-ans-box">
                   <div class="demo-voice-sim">
                     <span class="voice-sim-dot"></span>
-                    <span>Transcribed Audio Input (92 words)</span>
+                    <span>Typed Candidate Response (92 words)</span>
                   </div>
                   <p class="demo-ans-text">
                     "At my previous fintech startup, users strongly requested custom real-time transaction reports, but our batch pipeline couldn't handle live aggregation without tripling cloud compute. I analyzed query patterns, found 85% of exports only needed 15-minute granularity, and negotiated a phased rollout with tiered caching. This reduced peak server load by 42% while retaining 98% of target enterprise accounts."
