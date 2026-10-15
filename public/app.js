@@ -884,3 +884,14 @@ navHowItWorks?.addEventListener("click", (e) => {
   openDemoModal();
 });
 
+// Check if URL loaded with #how-it-works or #demo-modal
+function checkInitialHash() {
+  const hash = window.location.hash.toLowerCase();
+  if (hash === "#how-it-works" || hash === "#demo-modal") {
+    openDemoModal();
+  }
+}
+window.addEventListener("hashchange", checkInitialHash);
+checkInitialHash();
+
+

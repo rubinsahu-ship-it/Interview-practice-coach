@@ -72,7 +72,7 @@
 
             <nav class="nav-actions" aria-label="Main Navigation">
               <a href="#features-strip" class="nav-link">Features</a>
-              <a href="#how-it-works" class="nav-link" id="nav-how-it-works">How It Works</a>
+              <a href="#demo-modal" class="nav-link" id="nav-how-it-works" role="button" aria-controls="demo-modal">How It Works</a>
               <a href="#practice-launcher" class="nav-cta-pill" id="nav-start-btn">Start Practice</a>
             </nav>
           </header>
@@ -191,9 +191,9 @@
                     <span class="mockup-dot dot-3"></span>
                   </div>
                   <div class="mockup-window-title">
-                    <span class="mockup-title-step">ROUND 1 OF 5</span>
+                    <span class="mockup-preview-badge">Example session</span>
                     <span class="mockup-title-sep">•</span>
-                    <span class="mockup-title-role">ACTIVE PRACTICE</span>
+                    <span class="mockup-title-step">ROUND 1 OF 5</span>
                   </div>
                   <div class="mockup-window-timer">
                     <span class="mockup-timer-icon" aria-hidden="true">⏱</span>
@@ -258,7 +258,7 @@
                   </div>
                   <h3 class="card-feature-title">Role-based questions</h3>
                   <p class="card-feature-desc">
-                    Realistic behavioral and situational questions calibrated specifically to your chosen domain, from engineering systems to product trade-offs.
+                    Realistic behavioral and situational questions calibrated specifically to your chosen domain.
                   </p>
                 </article>
 
@@ -270,19 +270,19 @@
                   </div>
                   <h3 class="card-feature-title">Instant feedback</h3>
                   <p class="card-feature-desc">
-                    Immediate coaching debriefs after every round detailing what worked well, what was omitted, and a top-tier gold standard model answer.
+                    Immediate coaching debriefs after every round detailing what worked, what was omitted, and a gold standard model answer.
                   </p>
                 </article>
 
-                <!-- Card 3: Clear feedback -->
+                <!-- Card 3: Improve and retry -->
                 <article class="dark-feature-card">
                   <div class="card-meta-row">
                     <span class="card-num-kicker">03</span>
-                    <span class="card-badge">Actionable Guidance</span>
+                    <span class="card-badge">Skill Mastery</span>
                   </div>
-                  <h3 class="card-feature-title">Clear feedback</h3>
+                  <h3 class="card-feature-title">Improve and retry</h3>
                   <p class="card-feature-desc">
-                    Receive focused debriefs highlighting what worked well, what was missing, and concrete ways to sharpen your structure, clarity, and impact.
+                    Re-attempt questions immediately with coaching debriefs in mind to refine your answers, clarity, and structure.
                   </p>
                 </article>
               </div>
@@ -565,6 +565,7 @@
 
         <!-- INTERACTIVE DEMO PREVIEW MODAL -->
         <div class="demo-modal-backdrop hidden" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title">
+          <div id="how-it-works" class="anchor-target" aria-hidden="true" style="position: absolute; top: 0; left: 0;"></div>
           <div class="demo-modal-window">
             <div class="demo-modal-header">
               <div class="demo-modal-tag">LIVE DEMO WALKTHROUGH</div>
