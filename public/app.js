@@ -16,15 +16,10 @@ const state = {
   streak: 0, // Continuous answer streak
   maxStreak: 0,
   history: [], // { question, answer, followUpQuestion, followUpAnswer, feedback, roundPoints }
-  timerInterval: null,
-  secondsRemaining: 30,
   activeRecognition: null,
   activeMicBtn: null,
   activeBanner: null,
 };
-
-// SVG Timer circumference: 2 * PI * 42 ~= 263.89
-const TIMER_CIRCUMFERENCE = 263.89;
 
 // DOM Elements - Screens & HUD
 const gameHud = document.querySelector("#game-hud");
@@ -56,16 +51,7 @@ const qRoundLabel = document.querySelector("#q-round-label");
 const progressBarFill = document.querySelector("#progress-bar-fill");
 const questionHeading = document.querySelector("#question-heading");
 
-// Countdown Timer Elements
-const thinkingTimerBox = document.querySelector("#thinking-timer-box");
-const timerSvgCircle = document.querySelector("#timer-svg-circle");
-const timerSeconds = document.querySelector("#timer-seconds");
-const skipTimerBtn = document.querySelector("#skip-timer-btn");
-
 // Main Answer Elements
-const mainMicBtn = document.querySelector("#main-mic-btn");
-const mainRecordingBanner = document.querySelector("#main-recording-banner");
-const mainStopMicBtn = document.querySelector("#main-stop-mic-btn");
 const mainWordCounter = document.querySelector("#main-word-counter");
 const mainAnswerInput = document.querySelector("#main-answer-input");
 const submitMainAnswerBtn = document.querySelector("#submit-main-answer-btn");
@@ -75,9 +61,6 @@ const retryQuestionBtn = document.querySelector("#retry-question-btn");
 const followupRecapQnum = document.querySelector("#followup-recap-qnum");
 const recapMainQuestion = document.querySelector("#recap-main-question");
 const followupQuestionText = document.querySelector("#followup-question-text");
-const followupMicBtn = document.querySelector("#followup-mic-btn");
-const followupRecordingBanner = document.querySelector("#followup-recording-banner");
-const followupStopMicBtn = document.querySelector("#followup-stop-mic-btn");
 const followupWordCounter = document.querySelector("#followup-word-counter");
 const followupAnswerInput = document.querySelector("#followup-answer-input");
 const submitFollowupBtn = document.querySelector("#submit-followup-btn");
@@ -166,12 +149,21 @@ diffChips.forEach((chip) => {
 // Navigation: Show single screen
 function showScreen(screenToShow) {
   const screens = [setupCard, questionCard, followupCard, feedbackCard, finalSummaryCard];
+  const inQuiz = screenToShow !== setupCard;
+
+  document.body.classList.toggle("session-active", inQuiz);
+  document.body.classList.toggle("landing-active", !inQuiz);
+
   screens.forEach((s) => {
-    if (s) s.hidden = (s !== screenToShow);
+    if (s) {
+      const isTarget = s === screenToShow;
+      s.hidden = !isTarget;
+      s.classList.toggle("hidden", !isTarget);
+    }
   });
 
-  const inQuiz = screenToShow !== setupCard;
   gameHud.classList.toggle("hidden", !inQuiz);
+  gameHud.hidden = !inQuiz;
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -254,162 +246,11 @@ function triggerConfetti() {
   render();
 }
 
-// ==========================================================================
-// Web Speech API Voice Input (With Graceful Fallback)
-// ==========================================================================
-function stopActiveVoiceInput() {
-  if (state.activeRecognition) {
-    try {
-      state.activeRecognition.stop();
-    } catch {}
-    state.activeRecognition = null;
-  }
-  if (state.activeMicBtn) {
-    state.activeMicBtn.classList.remove("recording");
-    const label = state.activeMicBtn.querySelector(".mic-text");
-    if (label) label.textContent = "Answer with Voice";
-  }
-  if (state.activeBanner) {
-    state.activeBanner.classList.add("hidden");
-  }
-  state.activeMicBtn = null;
-  state.activeBanner = null;
-}
-
-function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
-  if (state.activeRecognition && state.activeMicBtn === micBtn) {
-    stopActiveVoiceInput();
-    setStatus("Voice recording paused. You can edit or continue typing below.", false);
-    return;
-  }
-
-  stopActiveVoiceInput();
-
-  if (!SpeechRecognition) {
-    setStatus("Speech recognition is not supported in this browser. Please type your answer below.", true);
-    targetTextarea.focus();
-    return;
-  }
-
-  try {
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-
-    let initialText = targetTextarea.value;
-    if (initialText && !initialText.endsWith(" ")) {
-      initialText += " ";
-    }
-
-    recognition.onstart = () => {
-      state.activeRecognition = recognition;
-      state.activeMicBtn = micBtn;
-      state.activeBanner = bannerEl;
-      micBtn.classList.add("recording");
-      const label = micBtn.querySelector(".mic-text");
-      if (label) label.textContent = "Recording… (Click to Stop)";
-      bannerEl.classList.remove("hidden");
-      setStatus("Microphone active! Speak clearly.", false);
-    };
-
-    recognition.onresult = (event) => {
-      let finalTranscript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        finalTranscript += event.results[i][0].transcript;
-      }
-      targetTextarea.value = (initialText + finalTranscript).trim();
-      updateWordCounter(targetTextarea, wordCounterEl);
-    };
-
-    recognition.onerror = (event) => {
-      console.warn("Speech recognition error:", event.error);
-      stopActiveVoiceInput();
-      if (event.error === "not-allowed" || event.error === "permission-denied") {
-        setStatus("Microphone permission denied. You can continue by typing in the box below.", true);
-      } else if (event.error === "no-speech") {
-        setStatus("No speech detected. Speak again or type your answer below.", false);
-      } else {
-        setStatus("Voice input encountered an error. Text input is ready.", false);
-      }
-      targetTextarea.focus();
-    };
-
-    recognition.onend = () => {
-      stopActiveVoiceInput();
-    };
-
-    recognition.start();
-  } catch (err) {
-    console.error("SpeechRecognition error:", err);
-    stopActiveVoiceInput();
-    setStatus("Could not activate microphone. Please type your answer below.", true);
-  }
-}
-
-mainMicBtn.addEventListener("click", () => {
-  toggleVoiceInput(mainAnswerInput, mainMicBtn, mainRecordingBanner, mainWordCounter);
-});
-mainStopMicBtn.addEventListener("click", stopActiveVoiceInput);
-
-followupMicBtn.addEventListener("click", () => {
-  toggleVoiceInput(followupAnswerInput, followupMicBtn, followupRecordingBanner, followupWordCounter);
-});
-followupStopMicBtn.addEventListener("click", stopActiveVoiceInput);
+// Voice input is retired (typed answers only). Keep no-op helper for safe callers.
+function stopActiveVoiceInput() {}
 
 mainAnswerInput.addEventListener("input", () => updateWordCounter(mainAnswerInput, mainWordCounter));
 followupAnswerInput.addEventListener("input", () => updateWordCounter(followupAnswerInput, followupWordCounter));
-
-// ==========================================================================
-// 30-Second Countdown Timer (Circular SVG Animation)
-// ==========================================================================
-function updateSvgTimer(seconds) {
-  timerSeconds.textContent = seconds;
-  const fraction = (30 - seconds) / 30;
-  const offset = TIMER_CIRCUMFERENCE * fraction;
-  timerSvgCircle.style.strokeDashoffset = offset;
-
-  if (seconds <= 10) {
-    timerSvgCircle.classList.add("urgent");
-  } else {
-    timerSvgCircle.classList.remove("urgent");
-  }
-}
-
-function stopThinkingTimer() {
-  if (state.timerInterval) {
-    clearInterval(state.timerInterval);
-    state.timerInterval = null;
-  }
-  thinkingTimerBox.classList.remove("timer-pulse");
-  updateSvgTimer(0);
-}
-
-function startThinkingTimer() {
-  stopThinkingTimer();
-  state.secondsRemaining = 30;
-  thinkingTimerBox.classList.add("timer-pulse");
-  updateSvgTimer(30);
-
-  state.timerInterval = setInterval(() => {
-    state.secondsRemaining--;
-    if (state.secondsRemaining < 0) state.secondsRemaining = 0;
-
-    updateSvgTimer(state.secondsRemaining);
-
-    if (state.secondsRemaining <= 0) {
-      stopThinkingTimer();
-      setStatus("Thinking time up! Speak or type your answer.", false);
-      mainAnswerInput.focus();
-    }
-  }, 1000);
-}
-
-skipTimerBtn.addEventListener("click", () => {
-  stopThinkingTimer();
-  mainAnswerInput.focus();
-  setStatus("Timer skipped! Ready when you are.", false);
-});
 
 // ==========================================================================
 // SCREEN 1 -> SCREEN 2: START CHALLENGE
@@ -466,7 +307,7 @@ function renderQuestionScreen(qNum, questionText) {
 
   updateHud(qNum);
   showScreen(questionCard);
-  startThinkingTimer();
+  mainAnswerInput?.focus();
 }
 
 // ==========================================================================
@@ -475,13 +316,12 @@ function renderQuestionScreen(qNum, questionText) {
 submitMainAnswerBtn.addEventListener("click", async () => {
   const answer = mainAnswerInput.value.trim();
   if (!answer) {
-    setStatus("Please speak or type an answer first!", true);
+    setStatus("Please type your answer first!", true);
     mainAnswerInput.focus();
     return;
   }
 
   stopActiveVoiceInput();
-  stopThinkingTimer();
   state.currentAnswer = answer;
 
   setStatus("");
@@ -525,8 +365,8 @@ retryQuestionBtn.addEventListener("click", () => {
   stopActiveVoiceInput();
   mainAnswerInput.value = "";
   updateWordCounter(mainAnswerInput, mainWordCounter);
-  startThinkingTimer();
-  setStatus("Question reset. Take 30 seconds to rethink!", false);
+  mainAnswerInput?.focus();
+  setStatus("Question reset. Type your answer when ready.", false);
 });
 
 // ==========================================================================
@@ -783,7 +623,6 @@ function escapeHtml(str) {
 // ==========================================================================
 function confirmEndInterview() {
   stopActiveVoiceInput();
-  stopThinkingTimer();
 
   if (state.history.length === 0) {
     if (confirm("Exit to the lobby?")) {
@@ -802,7 +641,6 @@ endInterviewBtnFeedback?.addEventListener("click", confirmEndInterview);
 
 restartInterviewBtn?.addEventListener("click", () => {
   stopActiveVoiceInput();
-  stopThinkingTimer();
   state.history = [];
   state.currentQuestionIndex = 0;
   state.score = 0;
@@ -893,5 +731,9 @@ function checkInitialHash() {
 }
 window.addEventListener("hashchange", checkInitialHash);
 checkInitialHash();
+
+// Ensure initial landing state classes on body
+document.body.classList.add("landing-active");
+document.body.classList.remove("session-active");
 
 

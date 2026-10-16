@@ -195,9 +195,9 @@
                     <span class="mockup-title-sep">•</span>
                     <span class="mockup-title-step">ROUND 1 OF 5</span>
                   </div>
-                  <div class="mockup-window-timer">
-                    <span class="mockup-timer-icon" aria-hidden="true">⏱</span>
-                    <span>30s Pacing</span>
+                  <div class="mockup-window-badge">
+                    <span class="mockup-badge-dot" aria-hidden="true">●</span>
+                    <span>Self-Paced</span>
                   </div>
                 </div>
 
@@ -311,45 +311,14 @@
             <h2 id="question-heading" class="quiz-question-text">Loading question…</h2>
           </div>
 
-          <!-- Big Countdown Timer Component -->
-          <div class="timer-dial-container" id="thinking-timer-box">
-            <div class="timer-dial-inner">
-              <svg class="timer-svg" viewBox="0 0 100 100" aria-hidden="true">
-                <circle class="timer-circle-bg" cx="50" cy="50" r="42"></circle>
-                <circle class="timer-circle-progress" id="timer-svg-circle" cx="50" cy="50" r="42"></circle>
-              </svg>
-              <div class="timer-number-box">
-                <span class="timer-number" id="timer-seconds">30</span>
-                <span class="timer-sub">SEC</span>
-              </div>
-            </div>
-            <div class="timer-callout">
-              <div class="timer-title">Thinking Time</div>
-              <p class="timer-desc">Organize your thoughts: Situation, Task, Action, Result.</p>
-              <button id="skip-timer-btn" type="button" class="btn-pill-subtle">
-                Ready to Answer ⚡
-              </button>
-            </div>
-          </div>
 
           <!-- Open Answer Zone -->
           <div class="answer-zone" id="main-answer-zone">
             <div class="answer-zone-header">
               <label for="main-answer-input" class="zone-label">Your Response</label>
               <div class="zone-tools">
-                <button id="main-mic-btn" type="button" class="btn-mic" aria-label="Answer by voice">
-                  <span class="mic-glyph">🎙️</span>
-                  <span class="mic-text">Answer with Voice</span>
-                </button>
                 <span class="word-counter-pill" id="main-word-counter">0 words</span>
               </div>
-            </div>
-
-            <!-- Listening Banner -->
-            <div class="listening-banner hidden" id="main-recording-banner">
-              <span class="live-pulse"></span>
-              <span>Listening… speak clearly into your mic. Click Stop when done.</span>
-              <button type="button" id="main-stop-mic-btn" class="btn-mini-stop">Stop</button>
             </div>
 
             <textarea
@@ -392,18 +361,8 @@
             <div class="answer-zone-header">
               <label for="followup-answer-input" class="zone-label">Your Follow-Up Response</label>
               <div class="zone-tools">
-                <button id="followup-mic-btn" type="button" class="btn-mic" aria-label="Answer follow-up by voice">
-                  <span class="mic-glyph">🎙️</span>
-                  <span class="mic-text">Answer with Voice</span>
-                </button>
                 <span class="word-counter-pill" id="followup-word-counter">0 words</span>
               </div>
-            </div>
-
-            <div class="listening-banner hidden" id="followup-recording-banner">
-              <span class="live-pulse"></span>
-              <span>Listening… speak clearly. Click Stop when done.</span>
-              <button type="button" id="followup-stop-mic-btn" class="btn-mini-stop">Stop</button>
             </div>
 
             <textarea
@@ -589,8 +548,8 @@
               <div class="demo-flow-block">
                 <span class="demo-flow-kicker">STEP 2 • CANDIDATE WRITTEN RESPONSE</span>
                 <div class="demo-ans-box">
-                  <div class="demo-voice-sim">
-                    <span class="voice-sim-dot"></span>
+                  <div class="demo-response-pill">
+                    <span class="demo-pill-dot"></span>
                     <span>Typed Candidate Response (92 words)</span>
                   </div>
                   <p class="demo-ans-text">

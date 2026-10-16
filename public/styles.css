@@ -52,6 +52,22 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Strict hidden state enforcement */
+[hidden],
+.hidden {
+  display: none !important;
+}
+
+.editorial-landing[hidden],
+.editorial-landing.hidden {
+  display: none !important;
+}
+
+body.session-active .editorial-landing,
+body.session-active .ambient-bg {
+  display: none !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -655,7 +671,7 @@ body {
   color: var(--text-muted);
 }
 
-.mockup-window-timer {
+.mockup-window-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -669,8 +685,9 @@ body {
   border: 1px solid #E5DFD5;
 }
 
-.mockup-timer-icon {
-  font-size: 0.75rem;
+.mockup-badge-dot {
+  font-size: 0.6rem;
+  color: #166534;
 }
 
 /* Inner Mockup Content Stack */
@@ -1191,14 +1208,15 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 860px;
+  max-width: 900px;
   width: calc(100% - 32px);
-  margin: 20px auto;
+  margin: 24px auto 16px;
   padding: 12px 20px;
   background: #FFFFFF;
   border: 1px solid var(--bg-cream-border);
   border-radius: 999px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
   animation: hudFadeIn 0.3s ease-out;
 }
 
@@ -1310,17 +1328,18 @@ body {
 
 /* Base styling for Quiz Cards */
 .game-card:not(.editorial-landing) {
-  max-width: 860px;
+  max-width: 900px;
   width: calc(100% - 32px);
-  margin: 20px auto 40px;
+  margin: 0 auto 40px;
   background: #ffffff;
   border: 1px solid var(--bg-cream-border);
   border-radius: 24px;
-  padding: 32px;
+  padding: clamp(22px, 3.5vw, 36px);
   box-shadow: var(--shadow-card);
   animation: gamePopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.15);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 @keyframes gamePopIn {
@@ -1421,31 +1440,66 @@ body {
    DESKTOP TRUE ONE-SCREEN EDITORIAL LAYOUT (100VH VIEWPORT - NO SCROLL)
    ========================================================================== */
 @media (min-width: 993px) {
-  html, body {
+  body:not(.session-active) html,
+  body:not(.session-active) {
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
   }
 
-  .game-wrapper {
+  body:not(.session-active) .game-wrapper {
     height: 100vh;
     min-height: 100vh;
     max-height: 100vh;
     overflow: hidden;
   }
 
-  .game-main {
+  body:not(.session-active) .game-main {
     height: 100%;
     min-height: 0;
   }
 
-  .editorial-landing {
+  body:not(.session-active) .editorial-landing {
     height: 100%;
     max-height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+  }
+
+  /* Active Practice Session Desktop Document Flow */
+  body.session-active {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: var(--bg-cream);
+  }
+
+  body.session-active .game-wrapper {
+    height: auto;
+    min-height: 100vh;
+    max-height: none;
+    overflow-y: visible;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px 60px;
+    box-sizing: border-box;
+  }
+
+  body.session-active .game-main {
+    height: auto;
+    min-height: auto;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
   }
 
   .editorial-nav {
@@ -1895,7 +1949,7 @@ body {
     display: none;
   }
 
-  .mockup-window-timer {
+  .mockup-window-badge {
     font-size: 0.65rem;
     padding: 2px 6px;
     flex-shrink: 0;
@@ -1953,7 +2007,7 @@ body {
 }
 
 /* ==========================================================================
-   SCREEN 2: QUESTION SCREEN & COUNTDOWN TIMER
+   SCREEN 2: QUESTION SCREEN
    ========================================================================== */
 .question-top-bar {
   display: flex;
@@ -1987,163 +2041,61 @@ body {
 }
 
 .quiz-question-box {
-  background: var(--card-subtle);
-  border: 2px solid var(--card-border);
+  background: var(--bg-cream-surface);
+  border: 1.5px solid var(--bg-cream-border);
   border-radius: 20px;
-  padding: 22px 24px;
+  padding: clamp(18px, 2.5vw, 26px);
   margin-bottom: 20px;
   position: relative;
+  box-sizing: border-box;
 }
 
 .question-tag {
   display: inline-block;
-  background: var(--color-purple);
-  color: #fff;
-  font-family: var(--font-display);
-  font-weight: 800;
+  background: var(--text-primary);
+  color: #FAF8F5;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .quiz-question-text {
-  font-family: var(--font-display);
-  font-size: clamp(1.25rem, 3.8vw, 1.6rem);
-  font-weight: 800;
-  color: var(--text-main);
-  line-height: 1.35;
+  font-family: var(--font-serif);
+  font-size: clamp(1.22rem, 2.2vw, 1.6rem);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.38;
   margin: 0;
 }
 
-/* Countdown Timer Dial Component */
-.timer-dial-container {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  background: #fffcf5;
-  border: 2px solid #fde7b3;
+/* Response Card / Answer Zone */
+.answer-zone {
+  background: #FAF8F5;
+  border: 1.5px solid var(--bg-cream-border);
   border-radius: 20px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  transition: all 0.2s ease;
+  padding: clamp(18px, 2.5vw, 24px);
+  margin-top: 0;
+  box-sizing: border-box;
 }
 
-.timer-dial-container.timer-pulse {
-  border-color: var(--color-yellow);
-  box-shadow: 0 4px 20px rgba(255, 166, 2, 0.2);
-}
-
-.timer-dial-inner {
-  position: relative;
-  width: 76px;
-  height: 76px;
-  flex-shrink: 0;
-}
-
-.timer-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.timer-circle-bg {
-  fill: none;
-  stroke: #f3e5c9;
-  stroke-width: 8;
-}
-
-.timer-circle-progress {
-  fill: none;
-  stroke: var(--color-yellow);
-  stroke-width: 8;
-  stroke-linecap: round;
-  stroke-dasharray: 264;
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
-}
-
-.timer-circle-progress.urgent {
-  stroke: var(--color-red);
-}
-
-.timer-number-box {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.timer-number {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 1.45rem;
-  color: var(--text-main);
-  line-height: 1;
-}
-
-.timer-sub {
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: var(--text-muted);
-}
-
-.timer-callout {
-  flex: 1;
-}
-
-.timer-title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 0.95rem;
-  color: #7a4a00;
-}
-
-.timer-desc {
-  margin: 2px 0 8px;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  line-height: 1.35;
-}
-
-.btn-pill-subtle {
-  background: #f7edd6;
-  border: 1px solid #e7cd96;
-  color: #5d3800;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.78rem;
-  padding: 5px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.btn-pill-subtle:hover {
-  background: #edd8ab;
-}
-
-/* Answer Zone */
 .answer-zone-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .zone-label {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1rem;
-  color: var(--text-main);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .zone-tools {
@@ -2152,93 +2104,14 @@ body {
   gap: 10px;
 }
 
-.btn-mic {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #f4eefa;
-  border: 2px solid #e3d5f3;
-  color: var(--color-purple);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 0.82rem;
-  padding: 7px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-mic:hover {
-  background: #ede1f8;
-  border-color: var(--color-purple);
-}
-
-.btn-mic.recording {
-  background: var(--color-red);
-  border-color: var(--color-red-dark);
-  color: #fff;
-  animation: micGlow 1.2s infinite alternate;
-}
-
-@keyframes micGlow {
-  0% { box-shadow: 0 0 0 0 rgba(226, 27, 60, 0.4); }
-  100% { box-shadow: 0 0 0 10px rgba(226, 27, 60, 0); }
-}
-
 .word-counter-pill {
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-muted);
-  background: var(--card-subtle);
-  padding: 4px 10px;
+  background: #FFFFFF;
+  padding: 4px 12px;
   border-radius: 999px;
-  border: 1px solid var(--card-border);
-}
-
-.listening-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fee7eb;
-  border: 1.5px solid #f9b6c2;
-  color: var(--color-red-dark);
-  font-size: 0.85rem;
-  font-weight: 700;
-  border-radius: 12px;
-  padding: 8px 14px;
-  margin-bottom: 12px;
-  animation: bannerSlide 0.2s ease-out;
-}
-
-@keyframes bannerSlide {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.live-pulse {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--color-red);
-  display: inline-block;
-  animation: pulseDot 0.8s infinite alternate;
-}
-
-@keyframes pulseDot {
-  from { transform: scale(0.7); opacity: 0.7; }
-  to { transform: scale(1.3); opacity: 1; }
-}
-
-.btn-mini-stop {
-  margin-left: auto;
-  padding: 3px 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border-radius: 6px;
-  background: #fff;
-  border: 1px solid #f9b6c2;
-  color: var(--color-red-dark);
-  cursor: pointer;
+  border: 1px solid var(--bg-cream-border);
 }
 
 .game-textarea {
@@ -2246,21 +2119,27 @@ body {
   font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.6;
-  color: var(--text-main);
-  background: var(--card-subtle);
-  border: 2px solid var(--card-border);
-  border-radius: 18px;
+  color: var(--text-primary);
+  background: #FFFFFF;
+  border: 1.5px solid var(--bg-cream-border);
+  border-radius: 14px;
   padding: 16px;
   resize: vertical;
-  min-height: 140px;
+  min-height: 150px;
   outline: none;
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
 .game-textarea:focus {
-  background: #fff;
-  border-color: var(--color-blue);
-  box-shadow: 0 0 0 4px rgba(19, 104, 206, 0.15);
+  background: #FFFFFF;
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 3px rgba(18, 18, 20, 0.08);
+}
+
+.btn-mic,
+.listening-banner {
+  display: none !important;
 }
 
 .card-action-row {
@@ -2800,23 +2679,52 @@ body {
    MOBILE-FIRST RESPONSIVE BREAKPOINTS
    ========================================================================== */
 @media (max-width: 640px) {
-  .game-wrapper {
-    padding: 0;
+  body.session-active .game-wrapper {
+    padding: 0 12px 40px;
   }
 
   .game-hud {
-    border-radius: 20px;
-    padding: 10px 14px;
-    margin-bottom: 14px;
+    border-radius: 16px;
+    padding: 8px 12px;
+    margin: 12px auto 14px;
+    width: 100%;
+  }
+
+  .hud-chip {
+    padding: 4px 8px;
+    font-size: 0.76rem;
+    gap: 4px;
+  }
+
+  .hud-chip-unit {
+    display: none;
   }
 
   .hud-role-name {
-    max-width: 80px;
+    max-width: 75px;
   }
 
-  .game-card {
-    border-radius: 20px;
-    padding: 20px 16px;
+  .game-card:not(.editorial-landing) {
+    border-radius: 18px;
+    padding: 18px 14px;
+    width: 100%;
+    margin-bottom: 30px;
+  }
+
+  .quiz-question-box {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+
+  .answer-zone {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+
+  .game-textarea {
+    min-height: 140px;
+    font-size: 0.95rem;
+    padding: 12px;
   }
 
   .game-features-grid,
@@ -2824,15 +2732,15 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .timer-dial-container {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-  }
-
   .card-action-row,
   .feedback-secondary-actions {
     flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-action-row .game-btn,
+  .feedback-secondary-actions .game-btn {
+    width: 100%;
   }
 
   .scoreboard-stats-grid {
