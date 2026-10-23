@@ -37,11 +37,12 @@ const state = {
   activeSpeakerBtn: null,
 };
 
-// MediaRecorder State for Untimed Audio Recording
+// MediaRecorder State for Untimed Audio Recording & Speech Synthesis
 let activeMediaRecorder = null;
 let activeMediaStream = null;
 let activeAudioChunks = [];
 let activeRecordingTarget = null; // 'main' or 'followup'
+let activeAudioElement = null;
 
 // DOM Elements - Screens & HUD
 const gameHud = document.querySelector("#game-hud");
@@ -459,6 +460,13 @@ function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
 // Question Audio Read-Aloud (Text-to-Speech)
 // --------------------------------------------------------------------------
 function stopActiveSpeechPlayback() {
+  if (activeAudioElement) {
+    try {
+      activeAudioElement.pause();
+      activeAudioElement.currentTime = 0;
+    } catch {}
+    activeAudioElement = null;
+  }
   if (typeof window !== "undefined" && window.speechSynthesis) {
     try {
       window.speechSynthesis.cancel();
@@ -476,7 +484,7 @@ function stopActiveSpeechPlayback() {
   state.activeSpeakerBtn = null;
 }
 
-function toggleSpeechPlayback(text, speakerBtn) {
+async function toggleSpeechPlayback(text, speakerBtn) {
   // CRITICAL: Stop mic capture immediately before playback so it doesn't transcribe the question
   stopActiveVoiceInput();
   stopActiveAudioRecording();
@@ -489,13 +497,66 @@ function toggleSpeechPlayback(text, speakerBtn) {
 
   stopActiveSpeechPlayback();
 
+  const cleanText = String(text || "").trim();
+  if (!cleanText) return;
+
+  state.activeSpeakerBtn = speakerBtn;
+  speakerBtn.classList.add("speaking");
+  const label = speakerBtn.querySelector(".speaker-label");
+  const icon = speakerBtn.querySelector(".speaker-icon");
+  if (label) label.textContent = "Loading…";
+  if (icon) icon.textContent = "⏳";
+  speakerBtn.setAttribute("aria-label", "Loading audio playback");
+  setStatus("Generating realistic interviewer audio…", false);
+
+  // 1. Try realistic ElevenLabs AI voice via backend endpoint first
+  try {
+    const response = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: cleanText }),
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      activeAudioElement = audio;
+
+      audio.onplay = () => {
+        if (label) label.textContent = "Stop";
+        if (icon) icon.textContent = "⏹";
+        speakerBtn.setAttribute("aria-label", "Stop audio playback");
+        setStatus("Interviewer speaking (ElevenLabs AI Voice)… Click Stop to pause.", false);
+      };
+
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        stopActiveSpeechPlayback();
+      };
+
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        fallbackBrowserTTS(cleanText, speakerBtn);
+      };
+
+      await audio.play();
+      return;
+    }
+  } catch (err) {
+    console.warn("ElevenLabs TTS unavailable, falling back to browser speech synthesis:", err);
+  }
+
+  // 2. Seamless fallback: Browser SpeechSynthesis
+  fallbackBrowserTTS(cleanText, speakerBtn);
+}
+
+function fallbackBrowserTTS(cleanText, speakerBtn) {
   if (typeof window === "undefined" || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
+    stopActiveSpeechPlayback();
     setStatus("Text-to-speech audio is not supported in this browser.", true);
     return;
   }
-
-  const cleanText = String(text || "").trim();
-  if (!cleanText) return;
 
   try {
     const utterance = new SpeechSynthesisUtterance(cleanText);

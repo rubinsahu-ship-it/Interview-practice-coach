@@ -8,6 +8,7 @@ import {
   scoreFeedback,
   generateInterviewSummary,
 } from "./lib/gemini.js";
+import { generateSpeech } from "./lib/elevenlabs.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -98,6 +99,27 @@ const server = createServer(async (req, res) => {
 
       const summary = await generateInterviewSummary({ role, difficulty, history });
       return sendJson(res, 200, summary);
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/tts") {
+      const body = await readJsonBody(req);
+      const text = String(body.text || "").trim();
+      if (!text) {
+        return sendJson(res, 400, { error: "Text is required for TTS." });
+      }
+
+      try {
+        const audioBuffer = await generateSpeech({ text, voiceId: body.voiceId });
+        res.writeHead(200, {
+          "Content-Type": "audio/mpeg",
+          "Content-Length": audioBuffer.length,
+          "Cache-Control": "public, max-age=3600",
+        });
+        return res.end(audioBuffer);
+      } catch (err) {
+        console.error("Local server TTS error:", err.message);
+        return sendJson(res, 500, { error: err.message });
+      }
     }
 
     if (req.method === "GET" || req.method === "HEAD") {
