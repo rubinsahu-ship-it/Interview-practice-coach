@@ -17,14 +17,16 @@ An end-to-end interactive mock interview coach powered by Gemini with zero-depen
    - Progressive interview flow with real-time progress bar (`Question X of 5`).
    - Calibrated to the chosen role and seniority level.
 
-3. **30-Second Thinking Timer**:
-   - Automatic 30-second countdown before each question to gather thoughts and structure responses (STAR method).
-   - "Ready to Answer / Skip Timer" button to start immediately.
+3. **Self-Paced Practice (No Timers or Time Limits)**:
+   - Candidates can take as long as needed to structure responses (STAR method) with zero time pressure.
+   - No countdowns, timers, or auto-submit: only manual submission ends an answer round. Answers are never judged or penalized on speed.
 
-4. **Voice or Text Input**:
-   - Speak directly into your microphone with real-time speech transcription (Web Speech API).
-   - Graceful fallback: if microphone permissions or browser speech support fail, text input is always available and fully functional.
-   - Live word counter and character feedback.
+4. **Voice & Text Input with Audio Read-Aloud**:
+   - **Voice Typing**: Start/Stop mic button to speak your answer with real-time browser transcription (Web Speech API).
+   - **Preserve & Edit**: Existing typed text is preserved; speech is appended cleanly without duplicating words. Stop the mic to edit anytime before manual submission.
+   - **Zero Audio Storage**: Pure browser-level transcription with zero audio storage or uploads.
+   - **Read Question Aloud**: Click the speaker button beside any question to hear it read aloud with text-to-speech. Automatically halts microphone capture during playback.
+   - **Graceful Fallback**: Clear status messages for denied permissions or unsupported browsers while keyboard typing remains 100% functional throughout.
 
 5. **Adaptive AI Follow-Up Question**:
    - After each answer, Gemini asks a realistic, targeted follow-up question probing trade-offs, metrics, or edge cases.

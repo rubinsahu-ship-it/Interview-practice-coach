@@ -19,6 +19,8 @@ const state = {
   activeRecognition: null,
   activeMicBtn: null,
   activeBanner: null,
+  activeUtterance: null,
+  activeSpeakerBtn: null,
 };
 
 // DOM Elements - Screens & HUD
@@ -50,8 +52,12 @@ const startInterviewBtn = document.querySelector("#start-interview-btn");
 const qRoundLabel = document.querySelector("#q-round-label");
 const progressBarFill = document.querySelector("#progress-bar-fill");
 const questionHeading = document.querySelector("#question-heading");
+const speakQuestionBtn = document.querySelector("#speak-question-btn");
 
 // Main Answer Elements
+const mainMicBtn = document.querySelector("#main-mic-btn");
+const mainRecordingBanner = document.querySelector("#main-recording-banner");
+const mainStopMicBtn = document.querySelector("#main-stop-mic-btn");
 const mainWordCounter = document.querySelector("#main-word-counter");
 const mainAnswerInput = document.querySelector("#main-answer-input");
 const submitMainAnswerBtn = document.querySelector("#submit-main-answer-btn");
@@ -61,6 +67,10 @@ const retryQuestionBtn = document.querySelector("#retry-question-btn");
 const followupRecapQnum = document.querySelector("#followup-recap-qnum");
 const recapMainQuestion = document.querySelector("#recap-main-question");
 const followupQuestionText = document.querySelector("#followup-question-text");
+const speakFollowupBtn = document.querySelector("#speak-followup-btn");
+const followupMicBtn = document.querySelector("#followup-mic-btn");
+const followupRecordingBanner = document.querySelector("#followup-recording-banner");
+const followupStopMicBtn = document.querySelector("#followup-stop-mic-btn");
 const followupWordCounter = document.querySelector("#followup-word-counter");
 const followupAnswerInput = document.querySelector("#followup-answer-input");
 const submitFollowupBtn = document.querySelector("#submit-followup-btn");
@@ -148,6 +158,9 @@ diffChips.forEach((chip) => {
 
 // Navigation: Show single screen
 function showScreen(screenToShow) {
+  stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
+
   const screens = [setupCard, questionCard, followupCard, feedbackCard, finalSummaryCard];
   const inQuiz = screenToShow !== setupCard;
 
@@ -246,8 +259,236 @@ function triggerConfetti() {
   render();
 }
 
-// Voice input is retired (typed answers only). Keep no-op helper for safe callers.
-function stopActiveVoiceInput() {}
+// ==========================================================================
+// Web Speech API Voice Input & Question Audio Read-Aloud
+// ==========================================================================
+function stopActiveVoiceInput() {
+  if (state.activeRecognition) {
+    try {
+      state.activeRecognition.stop();
+    } catch {}
+    state.activeRecognition = null;
+  }
+  if (state.activeMicBtn) {
+    state.activeMicBtn.classList.remove("recording");
+    const label = state.activeMicBtn.querySelector(".mic-text");
+    if (label) label.textContent = "Start Mic";
+    const glyph = state.activeMicBtn.querySelector(".mic-glyph");
+    if (glyph) glyph.textContent = "🎙️";
+    state.activeMicBtn.setAttribute("aria-label", "Start voice typing");
+  }
+  if (state.activeBanner) {
+    state.activeBanner.classList.add("hidden");
+  }
+  state.activeMicBtn = null;
+  state.activeBanner = null;
+}
+
+function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
+  // If clicking the currently recording mic button, stop it cleanly
+  if (state.activeRecognition && state.activeMicBtn === micBtn) {
+    stopActiveVoiceInput();
+    setStatus("Microphone stopped. Your answer is editable below.", false);
+    targetTextarea.focus();
+    return;
+  }
+
+  // Ensure any other mic or speaker is stopped first
+  stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
+
+  if (!SpeechRecognition) {
+    setStatus("Speech recognition is not supported in this browser. Please type your answer directly.", true);
+    targetTextarea.focus();
+    return;
+  }
+
+  try {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    // Capture base text at the start of this mic session to preserve edits without duplication
+    const sessionBaseText = targetTextarea.value;
+    let prefix = "";
+    if (sessionBaseText) {
+      prefix = sessionBaseText.endsWith(" ") || sessionBaseText.endsWith("\n")
+        ? sessionBaseText
+        : `${sessionBaseText} `;
+    }
+
+    recognition.onstart = () => {
+      state.activeRecognition = recognition;
+      state.activeMicBtn = micBtn;
+      state.activeBanner = bannerEl;
+
+      micBtn.classList.add("recording");
+      const label = micBtn.querySelector(".mic-text");
+      if (label) label.textContent = "Stop Mic";
+      const glyph = micBtn.querySelector(".mic-glyph");
+      if (glyph) glyph.textContent = "⏹️";
+      micBtn.setAttribute("aria-label", "Stop voice typing");
+
+      if (bannerEl) bannerEl.classList.remove("hidden");
+      setStatus("Microphone active! Speak clearly. Audio is transcribed live and never stored.", false);
+    };
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      let currentSessionFinal = "";
+
+      for (let i = 0; i < event.results.length; i++) {
+        const chunk = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          currentSessionFinal += chunk;
+        } else {
+          interim += chunk;
+        }
+      }
+
+      const speechPart = (
+        currentSessionFinal +
+        (interim ? (currentSessionFinal ? " " : "") + interim : "")
+      ).trim();
+
+      targetTextarea.value = prefix
+        ? (speechPart ? `${prefix}${speechPart}` : sessionBaseText)
+        : speechPart;
+
+      updateWordCounter(targetTextarea, wordCounterEl);
+    };
+
+    recognition.onerror = (event) => {
+      console.warn("Speech recognition error:", event.error);
+      stopActiveVoiceInput();
+
+      if (event.error === "not-allowed" || event.error === "permission-denied") {
+        setStatus("Microphone permission was denied. Please allow microphone access in your browser settings, or continue typing below.", true);
+      } else if (event.error === "no-speech") {
+        setStatus("No speech detected. Click Start Mic to try again, or type your answer below.", false);
+      } else if (event.error === "network") {
+        setStatus("Speech recognition network error. Your browser speech service was unreachable. Keyboard typing is ready.", true);
+      } else if (event.error === "audio-capture") {
+        setStatus("Microphone was not found or is busy. Check audio settings or continue typing below.", true);
+      } else {
+        setStatus(`Voice typing notice (${event.error || "unavailable"}). Text input is ready.`, false);
+      }
+      targetTextarea.focus();
+    };
+
+    recognition.onend = () => {
+      stopActiveVoiceInput();
+    };
+
+    recognition.start();
+  } catch (err) {
+    console.error("SpeechRecognition error:", err);
+    stopActiveVoiceInput();
+    setStatus("Could not activate microphone. Please type your answer below.", true);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Question Audio Read-Aloud (Text-to-Speech)
+// --------------------------------------------------------------------------
+function stopActiveSpeechPlayback() {
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
+  }
+  if (state.activeSpeakerBtn) {
+    state.activeSpeakerBtn.classList.remove("speaking");
+    const label = state.activeSpeakerBtn.querySelector(".speaker-label");
+    if (label) label.textContent = "Listen";
+    const icon = state.activeSpeakerBtn.querySelector(".speaker-icon");
+    if (icon) icon.textContent = "🔊";
+    state.activeSpeakerBtn.setAttribute("aria-label", "Read aloud");
+  }
+  state.activeUtterance = null;
+  state.activeSpeakerBtn = null;
+}
+
+function toggleSpeechPlayback(text, speakerBtn) {
+  // CRITICAL: Stop mic capture immediately before playback so it doesn't transcribe the question
+  stopActiveVoiceInput();
+
+  if (state.activeSpeakerBtn === speakerBtn) {
+    stopActiveSpeechPlayback();
+    setStatus("Question audio playback stopped.", false);
+    return;
+  }
+
+  stopActiveSpeechPlayback();
+
+  if (typeof window === "undefined" || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
+    setStatus("Text-to-speech audio is not supported in this browser.", true);
+    return;
+  }
+
+  const cleanText = String(text || "").trim();
+  if (!cleanText) return;
+
+  try {
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = "en-US";
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => {
+      state.activeUtterance = utterance;
+      state.activeSpeakerBtn = speakerBtn;
+      speakerBtn.classList.add("speaking");
+      const label = speakerBtn.querySelector(".speaker-label");
+      if (label) label.textContent = "Stop";
+      const icon = speakerBtn.querySelector(".speaker-icon");
+      if (icon) icon.textContent = "⏹";
+      speakerBtn.setAttribute("aria-label", "Stop audio playback");
+      setStatus("Reading question aloud… Click Stop to pause.", false);
+    };
+
+    utterance.onend = () => {
+      stopActiveSpeechPlayback();
+    };
+
+    utterance.onerror = (e) => {
+      console.warn("Speech synthesis error:", e);
+      stopActiveSpeechPlayback();
+    };
+
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.error("Speech synthesis error:", err);
+    stopActiveSpeechPlayback();
+    setStatus("Audio playback encountered an error.", true);
+  }
+}
+
+// Wire Voice Input & Speaker Controls
+mainMicBtn?.addEventListener("click", () => {
+  toggleVoiceInput(mainAnswerInput, mainMicBtn, mainRecordingBanner, mainWordCounter);
+});
+mainStopMicBtn?.addEventListener("click", stopActiveVoiceInput);
+
+followupMicBtn?.addEventListener("click", () => {
+  toggleVoiceInput(followupAnswerInput, followupMicBtn, followupRecordingBanner, followupWordCounter);
+});
+followupStopMicBtn?.addEventListener("click", stopActiveVoiceInput);
+
+speakQuestionBtn?.addEventListener("click", () => {
+  const qText = questionHeading.textContent.trim();
+  if (qText && qText !== "Loading question…") {
+    toggleSpeechPlayback(qText, speakQuestionBtn);
+  }
+});
+
+speakFollowupBtn?.addEventListener("click", () => {
+  const qText = followupQuestionText.textContent.trim();
+  if (qText && qText !== "Formulating follow-up…") {
+    toggleSpeechPlayback(qText, speakFollowupBtn);
+  }
+});
 
 mainAnswerInput.addEventListener("input", () => updateWordCounter(mainAnswerInput, mainWordCounter));
 followupAnswerInput.addEventListener("input", () => updateWordCounter(followupAnswerInput, followupWordCounter));
@@ -295,6 +536,7 @@ startInterviewBtn.addEventListener("click", async () => {
 
 function renderQuestionScreen(qNum, questionText) {
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   setStatus("");
 
   qRoundLabel.textContent = `ROUND ${qNum} OF ${state.totalQuestions}`;
@@ -322,6 +564,7 @@ submitMainAnswerBtn.addEventListener("click", async () => {
   }
 
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   state.currentAnswer = answer;
 
   setStatus("");
@@ -346,6 +589,7 @@ submitMainAnswerBtn.addEventListener("click", async () => {
 
 function renderFollowupScreen() {
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   setStatus("");
 
   const qNum = state.currentQuestionIndex + 1;
@@ -363,6 +607,7 @@ function renderFollowupScreen() {
 
 retryQuestionBtn.addEventListener("click", () => {
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   mainAnswerInput.value = "";
   updateWordCounter(mainAnswerInput, mainWordCounter);
   mainAnswerInput?.focus();
@@ -381,6 +626,7 @@ submitFollowupBtn.addEventListener("click", async () => {
   }
 
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   state.currentFollowUpAnswer = followUpAnswer;
 
   setStatus("");
@@ -427,6 +673,7 @@ submitFollowupBtn.addEventListener("click", async () => {
 
 function renderFeedbackScreen(feedback, roundPoints) {
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   setStatus("");
 
   const qNum = state.currentQuestionIndex + 1;
@@ -478,6 +725,8 @@ retryCurrentQuestionBtn.addEventListener("click", () => {
 // SCREEN 4 -> SCREEN 5: ADVANCE TO NEXT QUESTION OR PODIUM
 // ==========================================================================
 nextQuestionBtn.addEventListener("click", async () => {
+  stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   if (state.currentQuestionIndex >= state.totalQuestions - 1) {
     await completeInterviewSession();
     return;
@@ -534,6 +783,7 @@ async function completeInterviewSession() {
 
 function renderFinalSummary(summary) {
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   setStatus("");
   triggerConfetti();
 
@@ -623,6 +873,7 @@ function escapeHtml(str) {
 // ==========================================================================
 function confirmEndInterview() {
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
 
   if (state.history.length === 0) {
     if (confirm("Exit to the lobby?")) {
@@ -641,6 +892,7 @@ endInterviewBtnFeedback?.addEventListener("click", confirmEndInterview);
 
 restartInterviewBtn?.addEventListener("click", () => {
   stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
   state.history = [];
   state.currentQuestionIndex = 0;
   state.score = 0;

@@ -307,25 +307,48 @@
 
           <!-- Main Question Box -->
           <div class="quiz-question-box">
-            <div class="question-tag">QUESTION</div>
+            <div class="question-header-row">
+              <div class="question-tag">QUESTION</div>
+              <button id="speak-question-btn" type="button" class="speaker-btn" title="Read question aloud" aria-label="Read question aloud">
+                <span class="speaker-icon" aria-hidden="true">🔊</span>
+                <span class="speaker-label">Listen</span>
+              </button>
+            </div>
             <h2 id="question-heading" class="quiz-question-text">Loading question…</h2>
           </div>
-
 
           <!-- Open Answer Zone -->
           <div class="answer-zone" id="main-answer-zone">
             <div class="answer-zone-header">
               <label for="main-answer-input" class="zone-label">Your Response</label>
               <div class="zone-tools">
+                <button id="main-mic-btn" type="button" class="btn-mic" aria-label="Start voice typing">
+                  <span class="mic-glyph" aria-hidden="true">🎙️</span>
+                  <span class="mic-text">Start Mic</span>
+                </button>
                 <span class="word-counter-pill" id="main-word-counter">0 words</span>
               </div>
+            </div>
+
+            <!-- Listening Banner -->
+            <div class="listening-banner hidden" id="main-recording-banner" role="status" aria-live="polite">
+              <div class="listening-status-wrap">
+                <span class="live-pulse" aria-hidden="true"></span>
+                <span class="listening-text">Listening… speak clearly into your mic. Click Stop Mic when done.</span>
+              </div>
+              <button type="button" id="main-stop-mic-btn" class="btn-mini-stop">Stop Mic</button>
+            </div>
+
+            <div class="mic-privacy-notice">
+              <span class="privacy-lock-icon" aria-hidden="true">🔒</span>
+              <span>Audio is not stored. Live transcription via your browser speech engine (e.g. Google speech in Chrome). Completely editable.</span>
             </div>
 
             <textarea
               id="main-answer-input"
               class="game-textarea"
               rows="6"
-              placeholder="Type your answer here. Include concrete details, choices you made, and measurable impact..."
+              placeholder="Type your answer here or click Start Mic to speak. Include concrete details, choices you made, and measurable impact..."
             ></textarea>
 
             <div class="card-action-row">
@@ -353,7 +376,13 @@
           </div>
 
           <div class="followup-quiz-box">
-            <div class="followup-tag">INTERVIEWER ASKS:</div>
+            <div class="followup-header-row">
+              <div class="followup-tag">INTERVIEWER ASKS:</div>
+              <button id="speak-followup-btn" type="button" class="speaker-btn" title="Read follow-up aloud" aria-label="Read follow-up aloud">
+                <span class="speaker-icon" aria-hidden="true">🔊</span>
+                <span class="speaker-label">Listen</span>
+              </button>
+            </div>
             <p class="followup-text" id="followup-question-text">Formulating follow-up…</p>
           </div>
 
@@ -361,15 +390,32 @@
             <div class="answer-zone-header">
               <label for="followup-answer-input" class="zone-label">Your Follow-Up Response</label>
               <div class="zone-tools">
+                <button id="followup-mic-btn" type="button" class="btn-mic" aria-label="Start voice typing for follow-up">
+                  <span class="mic-glyph" aria-hidden="true">🎙️</span>
+                  <span class="mic-text">Start Mic</span>
+                </button>
                 <span class="word-counter-pill" id="followup-word-counter">0 words</span>
               </div>
+            </div>
+
+            <div class="listening-banner hidden" id="followup-recording-banner" role="status" aria-live="polite">
+              <div class="listening-status-wrap">
+                <span class="live-pulse" aria-hidden="true"></span>
+                <span class="listening-text">Listening… speak clearly into your mic. Click Stop Mic when done.</span>
+              </div>
+              <button type="button" id="followup-stop-mic-btn" class="btn-mini-stop">Stop Mic</button>
+            </div>
+
+            <div class="mic-privacy-notice">
+              <span class="privacy-lock-icon" aria-hidden="true">🔒</span>
+              <span>Audio is not stored. Live transcription via your browser speech engine (e.g. Google speech in Chrome). Completely editable.</span>
             </div>
 
             <textarea
               id="followup-answer-input"
               class="game-textarea"
               rows="5"
-              placeholder="Address the follow-up question directly. Mention specific trade-offs, metrics, or clarifications..."
+              placeholder="Address the follow-up question directly or click Start Mic to speak. Mention specific trade-offs, metrics, or clarifications..."
             ></textarea>
 
             <div class="card-action-row">
