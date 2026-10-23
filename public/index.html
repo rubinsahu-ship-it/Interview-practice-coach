@@ -39,6 +39,12 @@
         </div>
 
         <div class="hud-right">
+          <button type="button" class="hud-chip recordings-hud-chip" id="hud-recordings-btn" title="View Audio Recordings Archive" aria-label="View Audio Recordings">
+            <span class="rec-icon" aria-hidden="true">🎙️</span>
+            <span class="hud-chip-value" id="hud-recordings-count">0</span>
+            <span class="hud-chip-unit">AUDIO</span>
+          </button>
+
           <div class="hud-chip streak-chip" id="hud-streak-chip" title="Current answer streak">
             <span class="streak-fire" aria-hidden="true">🔥</span>
             <span class="hud-chip-value" id="hud-streak-val">0</span>
@@ -73,6 +79,11 @@
             <nav class="nav-actions" aria-label="Main Navigation">
               <a href="#features-strip" class="nav-link">Features</a>
               <a href="#demo-modal" class="nav-link" id="nav-how-it-works" role="button" aria-controls="demo-modal">How It Works</a>
+              <button type="button" class="nav-link recordings-nav-btn" id="nav-recordings-btn" aria-haspopup="dialog" aria-label="View Saved Audio Recordings">
+                <span class="rec-nav-icon" aria-hidden="true">🎙️</span>
+                <span>Recordings</span>
+                <span class="nav-recordings-count" id="nav-recordings-count">0</span>
+              </button>
               <a href="#practice-launcher" class="nav-cta-pill" id="nav-start-btn">Start Practice</a>
             </nav>
           </header>
@@ -155,7 +166,7 @@
                   </div>
                 </div>
 
-                <!-- Clear CTA Buttons: Primary "Start Practice", Secondary "View Demo" -->
+                <!-- Clear CTA Buttons: Primary "Start Practice", Secondary "View Demo", Tertiary "Recordings" -->
                 <div class="launcher-cta-row">
                   <button id="start-interview-btn" type="button" class="cta-primary-btn">
                     <span class="btn-text">Start Practice</span>
@@ -167,6 +178,11 @@
                       <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
                     <span class="btn-text">View Demo</span>
+                  </button>
+
+                  <button id="launcher-recordings-btn" type="button" class="cta-secondary-btn recordings-launcher-btn" title="View Saved Audio Recordings">
+                    <span class="cta-icon" aria-hidden="true">🎙️</span>
+                    <span class="btn-text">Recordings (<span id="launcher-recordings-count">0</span>)</span>
                   </button>
                 </div>
 
@@ -326,6 +342,10 @@
                   <span class="mic-glyph" aria-hidden="true">🎙️</span>
                   <span class="mic-text">Start Mic</span>
                 </button>
+                <button id="main-record-btn" type="button" class="btn-record" aria-label="Record Audio">
+                  <span class="record-glyph" aria-hidden="true">⏺</span>
+                  <span class="record-text">Record Audio</span>
+                </button>
                 <span class="word-counter-pill" id="main-word-counter">0 words</span>
               </div>
             </div>
@@ -339,9 +359,43 @@
               <button type="button" id="main-stop-mic-btn" class="btn-mini-stop">Stop Mic</button>
             </div>
 
+            <!-- Audio Recording Indicator Banner (Clear indicator, untimed, no countdown, no auto-submit) -->
+            <div class="audio-recording-banner hidden" id="main-audio-recording-banner" role="status" aria-live="polite">
+              <div class="audio-recording-status-wrap">
+                <span class="audio-live-pulse" aria-hidden="true"></span>
+                <span class="audio-recording-status-text">Recording audio… speak your answer clearly. Click Stop Recording when done.</span>
+              </div>
+              <button type="button" id="main-stop-audio-btn" class="btn-mini-stop-rec">Stop Recording</button>
+            </div>
+
+            <!-- Saved Audio Preview Box (Replay, Download, Delete) -->
+            <div class="saved-audio-card hidden" id="main-saved-audio-card">
+              <div class="saved-audio-header">
+                <div class="saved-audio-title-wrap">
+                  <span class="audio-tag-glyph" aria-hidden="true">🎵</span>
+                  <span class="saved-audio-title">Saved Voice Recording</span>
+                  <span class="audio-format-badge" id="main-audio-format-badge">WEBM</span>
+                </div>
+                <span class="saved-audio-note">Saved on device in IndexedDB</span>
+              </div>
+              <div class="saved-audio-body">
+                <audio id="main-audio-player" class="audio-preview-element" controls preload="metadata"></audio>
+                <div class="saved-audio-actions">
+                  <button type="button" id="main-download-audio-btn" class="btn-audio-subaction" title="Download recording file">
+                    <span aria-hidden="true">⬇</span>
+                    <span id="main-download-text">Download</span>
+                  </button>
+                  <button type="button" id="main-delete-audio-btn" class="btn-audio-subaction btn-delete-audio" title="Delete recording">
+                    <span aria-hidden="true">🗑</span>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="mic-privacy-notice">
               <span class="privacy-lock-icon" aria-hidden="true">🔒</span>
-              <span>Audio is not stored. Live transcription via your browser speech engine (e.g. Google speech in Chrome). Completely editable.</span>
+              <span>Untimed practice. Voice typing transcribes live to text. Recorded audio is preserved locally in your browser's IndexedDB. Completely editable.</span>
             </div>
 
             <textarea
@@ -394,6 +448,10 @@
                   <span class="mic-glyph" aria-hidden="true">🎙️</span>
                   <span class="mic-text">Start Mic</span>
                 </button>
+                <button id="followup-record-btn" type="button" class="btn-record" aria-label="Record follow-up Audio">
+                  <span class="record-glyph" aria-hidden="true">⏺</span>
+                  <span class="record-text">Record Audio</span>
+                </button>
                 <span class="word-counter-pill" id="followup-word-counter">0 words</span>
               </div>
             </div>
@@ -406,9 +464,43 @@
               <button type="button" id="followup-stop-mic-btn" class="btn-mini-stop">Stop Mic</button>
             </div>
 
+            <!-- Audio Recording Indicator Banner (Clear indicator, untimed, no countdown, no auto-submit) -->
+            <div class="audio-recording-banner hidden" id="followup-audio-recording-banner" role="status" aria-live="polite">
+              <div class="audio-recording-status-wrap">
+                <span class="audio-live-pulse" aria-hidden="true"></span>
+                <span class="audio-recording-status-text">Recording follow-up audio… speak your answer clearly. Click Stop Recording when done.</span>
+              </div>
+              <button type="button" id="followup-stop-audio-btn" class="btn-mini-stop-rec">Stop Recording</button>
+            </div>
+
+            <!-- Saved Audio Preview Box (Replay, Download, Delete) -->
+            <div class="saved-audio-card hidden" id="followup-saved-audio-card">
+              <div class="saved-audio-header">
+                <div class="saved-audio-title-wrap">
+                  <span class="audio-tag-glyph" aria-hidden="true">🎵</span>
+                  <span class="saved-audio-title">Saved Follow-Up Voice Recording</span>
+                  <span class="audio-format-badge" id="followup-audio-format-badge">WEBM</span>
+                </div>
+                <span class="saved-audio-note">Saved on device in IndexedDB</span>
+              </div>
+              <div class="saved-audio-body">
+                <audio id="followup-audio-player" class="audio-preview-element" controls preload="metadata"></audio>
+                <div class="saved-audio-actions">
+                  <button type="button" id="followup-download-audio-btn" class="btn-audio-subaction" title="Download follow-up recording">
+                    <span aria-hidden="true">⬇</span>
+                    <span id="followup-download-text">Download</span>
+                  </button>
+                  <button type="button" id="followup-delete-audio-btn" class="btn-audio-subaction btn-delete-audio" title="Delete follow-up recording">
+                    <span aria-hidden="true">🗑</span>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="mic-privacy-notice">
               <span class="privacy-lock-icon" aria-hidden="true">🔒</span>
-              <span>Audio is not stored. Live transcription via your browser speech engine (e.g. Google speech in Chrome). Completely editable.</span>
+              <span>Untimed practice. Voice typing transcribes live to text. Recorded audio is preserved locally in your browser's IndexedDB. Completely editable.</span>
             </div>
 
             <textarea
@@ -554,6 +646,20 @@
             <p id="summary-suggestion-text" class="next-practice-body"></p>
           </div>
 
+          <!-- Session Audio Recordings Review -->
+          <div class="summary-card-block session-recordings-block" id="session-recordings-section">
+            <div class="summary-block-title">
+              <span class="title-icon">🎙️</span>
+              <h3>Session Voice Recordings</h3>
+              <button type="button" id="view-all-recordings-summary-btn" class="summary-view-recordings-link">
+                All Saved Recordings (<span id="summary-total-recordings-count">0</span>) →
+              </button>
+            </div>
+            <div id="session-recordings-list" class="session-recordings-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
           <!-- Question-by-Question Review Accordion -->
           <div class="review-accordion-section">
             <h3 class="review-heading">Full Session Review</h3>
@@ -631,6 +737,63 @@
               <button type="button" class="cta-primary-btn" id="demo-modal-start">
                 <span>Try Live Session Now</span>
                 <span class="btn-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECORDINGS ARCHIVE MODAL (INDEXEDDB STORAGE - PERSISTED ACROSS SESSIONS) -->
+        <div class="demo-modal-backdrop hidden" id="recordings-modal" role="dialog" aria-modal="true" aria-labelledby="recordings-modal-title">
+          <div class="demo-modal-window recordings-modal-window">
+            <div class="demo-modal-header recordings-modal-header">
+              <div class="recordings-modal-title-wrap">
+                <div class="demo-modal-tag">LOCAL STORAGE ARCHIVE • INDEXEDDB</div>
+                <h3 id="recordings-modal-title" class="demo-modal-heading">
+                  Audio Recordings <span id="recordings-modal-badge" class="recordings-badge-pill">0</span>
+                </h3>
+                <p class="recordings-modal-sub">
+                  Saved privately on this device and preserved across page refreshes. Replay, download, or manage below.
+                </p>
+              </div>
+              <button type="button" class="demo-modal-close-btn" id="recordings-modal-close" aria-label="Close recordings archive">✕</button>
+            </div>
+
+            <div class="recordings-toolbar">
+              <div class="recordings-filters">
+                <div class="recordings-filter-item">
+                  <label for="recordings-filter-role" class="filter-label">Role:</label>
+                  <select id="recordings-filter-role" class="recordings-select">
+                    <option value="all">All Roles</option>
+                  </select>
+                </div>
+
+                <div class="recordings-filter-item">
+                  <label for="recordings-filter-type" class="filter-label">Answer Type:</label>
+                  <select id="recordings-filter-type" class="recordings-select">
+                    <option value="all">All Answers</option>
+                    <option value="main">Main Answers</option>
+                    <option value="followup">Follow-Up Answers</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="recordings-bulk-actions">
+                <button type="button" id="clear-all-recordings-btn" class="btn-clear-recordings" title="Permanently delete all audio recordings">
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            <div class="recordings-modal-body" id="recordings-list-container">
+              <!-- Dynamically rendered list of recording cards -->
+            </div>
+
+            <div class="demo-modal-footer recordings-modal-footer">
+              <span class="recordings-storage-note">
+                🔒 Audio is saved in this browser's IndexedDB storage. Untimed practice is fully preserved.
+              </span>
+              <button type="button" class="cta-secondary-btn" id="recordings-modal-dismiss">
+                Close
               </button>
             </div>
           </div>

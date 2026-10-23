@@ -1,9 +1,23 @@
 // Interview Arena — Gamified Quiz-Style Interview Practice Coach
+import {
+  openRecordingsDB,
+  saveRecordingToDB,
+  getAllRecordingsFromDB,
+  getRecordingsBySession,
+  getLatestRecordingForQuestion,
+  deleteRecordingFromDB,
+  clearAllRecordingsFromDB,
+  getSupportedAudioFormat,
+  determineExtension,
+  triggerAudioDownload,
+} from "./db.js";
+
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
 // Application & Game State
 const state = {
+  sessionId: "session_" + Date.now(),
   role: "",
   difficulty: "Mid-Level",
   totalQuestions: 5,
@@ -23,6 +37,12 @@ const state = {
   activeSpeakerBtn: null,
 };
 
+// MediaRecorder State for Untimed Audio Recording
+let activeMediaRecorder = null;
+let activeMediaStream = null;
+let activeAudioChunks = [];
+let activeRecordingTarget = null; // 'main' or 'followup'
+
 // DOM Elements - Screens & HUD
 const gameHud = document.querySelector("#game-hud");
 const hudQVal = document.querySelector("#hud-q-val");
@@ -32,6 +52,8 @@ const hudStreakVal = document.querySelector("#hud-streak-val");
 const hudStreakChip = document.querySelector("#hud-streak-chip");
 const hudXpVal = document.querySelector("#hud-xp-val");
 const hudQuitBtn = document.querySelector("#hud-quit-btn");
+const hudRecordingsBtn = document.querySelector("#hud-recordings-btn");
+const hudRecordingsCount = document.querySelector("#hud-recordings-count");
 
 const setupCard = document.querySelector("#setup-card");
 const questionCard = document.querySelector("#question-card");
@@ -40,6 +62,12 @@ const feedbackCard = document.querySelector("#feedback-card");
 const finalSummaryCard = document.querySelector("#final-summary-card");
 const statusEl = document.querySelector("#status");
 const confettiCanvas = document.querySelector("#confetti-canvas");
+
+// Top Nav & Launcher Recordings
+const navRecordingsBtn = document.querySelector("#nav-recordings-btn");
+const navRecordingsCount = document.querySelector("#nav-recordings-count");
+const launcherRecordingsBtn = document.querySelector("#launcher-recordings-btn");
+const launcherRecordingsCount = document.querySelector("#launcher-recordings-count");
 
 // Setup Screen
 const roleSelect = document.querySelector("#role-select");
@@ -63,6 +91,17 @@ const mainAnswerInput = document.querySelector("#main-answer-input");
 const submitMainAnswerBtn = document.querySelector("#submit-main-answer-btn");
 const retryQuestionBtn = document.querySelector("#retry-question-btn");
 
+// Main Audio Recording Elements
+const mainRecordBtn = document.querySelector("#main-record-btn");
+const mainAudioRecordingBanner = document.querySelector("#main-audio-recording-banner");
+const mainStopAudioBtn = document.querySelector("#main-stop-audio-btn");
+const mainSavedAudioCard = document.querySelector("#main-saved-audio-card");
+const mainAudioFormatBadge = document.querySelector("#main-audio-format-badge");
+const mainAudioPlayer = document.querySelector("#main-audio-player");
+const mainDownloadAudioBtn = document.querySelector("#main-download-audio-btn");
+const mainDownloadText = document.querySelector("#main-download-text");
+const mainDeleteAudioBtn = document.querySelector("#main-delete-audio-btn");
+
 // Follow-up Screen
 const followupRecapQnum = document.querySelector("#followup-recap-qnum");
 const recapMainQuestion = document.querySelector("#recap-main-question");
@@ -74,6 +113,17 @@ const followupStopMicBtn = document.querySelector("#followup-stop-mic-btn");
 const followupWordCounter = document.querySelector("#followup-word-counter");
 const followupAnswerInput = document.querySelector("#followup-answer-input");
 const submitFollowupBtn = document.querySelector("#submit-followup-btn");
+
+// Follow-up Audio Recording Elements
+const followupRecordBtn = document.querySelector("#followup-record-btn");
+const followupAudioRecordingBanner = document.querySelector("#followup-audio-recording-banner");
+const followupStopAudioBtn = document.querySelector("#followup-stop-audio-btn");
+const followupSavedAudioCard = document.querySelector("#followup-saved-audio-card");
+const followupAudioFormatBadge = document.querySelector("#followup-audio-format-badge");
+const followupAudioPlayer = document.querySelector("#followup-audio-player");
+const followupDownloadAudioBtn = document.querySelector("#followup-download-audio-btn");
+const followupDownloadText = document.querySelector("#followup-download-text");
+const followupDeleteAudioBtn = document.querySelector("#followup-delete-audio-btn");
 
 // 3-Part Feedback Screen
 const feedbackXpPill = document.querySelector("#feedback-xp-pill");
@@ -95,8 +145,22 @@ const summaryOverviewText = document.querySelector("#summary-overview-text");
 const summaryStrengthsList = document.querySelector("#summary-strengths-list");
 const summaryImprovementsList = document.querySelector("#summary-improvements-list");
 const summarySuggestionText = document.querySelector("#summary-suggestion-text");
+const sessionRecordingsSection = document.querySelector("#session-recordings-section");
+const sessionRecordingsList = document.querySelector("#session-recordings-list");
+const viewAllRecordingsSummaryBtn = document.querySelector("#view-all-recordings-summary-btn");
+const summaryTotalRecordingsCount = document.querySelector("#summary-total-recordings-count");
 const transcriptAccordionContainer = document.querySelector("#transcript-accordion-container");
 const restartInterviewBtn = document.querySelector("#restart-interview-btn");
+
+// Recordings Modal Elements
+const recordingsModal = document.querySelector("#recordings-modal");
+const recordingsModalClose = document.querySelector("#recordings-modal-close");
+const recordingsModalDismiss = document.querySelector("#recordings-modal-dismiss");
+const recordingsModalBadge = document.querySelector("#recordings-modal-badge");
+const recordingsFilterRole = document.querySelector("#recordings-filter-role");
+const recordingsFilterType = document.querySelector("#recordings-filter-type");
+const clearAllRecordingsBtn = document.querySelector("#clear-all-recordings-btn");
+const recordingsListContainer = document.querySelector("#recordings-list-container");
 
 // ==========================================================================
 // HTTP JSON Request Helper
@@ -160,6 +224,7 @@ diffChips.forEach((chip) => {
 function showScreen(screenToShow) {
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
 
   const screens = [setupCard, questionCard, followupCard, feedbackCard, finalSummaryCard];
   const inQuiz = screenToShow !== setupCard;
@@ -296,6 +361,7 @@ function toggleVoiceInput(targetTextarea, micBtn, bannerEl, wordCounterEl) {
   // Ensure any other mic or speaker is stopped first
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
 
   if (!SpeechRecognition) {
     setStatus("Speech recognition is not supported in this browser. Please type your answer directly.", true);
@@ -413,6 +479,7 @@ function stopActiveSpeechPlayback() {
 function toggleSpeechPlayback(text, speakerBtn) {
   // CRITICAL: Stop mic capture immediately before playback so it doesn't transcribe the question
   stopActiveVoiceInput();
+  stopActiveAudioRecording();
 
   if (state.activeSpeakerBtn === speakerBtn) {
     stopActiveSpeechPlayback();
@@ -494,6 +561,226 @@ mainAnswerInput.addEventListener("input", () => updateWordCounter(mainAnswerInpu
 followupAnswerInput.addEventListener("input", () => updateWordCounter(followupAnswerInput, followupWordCounter));
 
 // ==========================================================================
+// Untimed Audio Recording via MediaRecorder (IndexedDB Local Storage)
+// ==========================================================================
+
+function setRecordingUI(targetType, isRecording) {
+  const isMain = targetType === "main";
+  const btn = isMain ? mainRecordBtn : followupRecordBtn;
+  const banner = isMain ? mainAudioRecordingBanner : followupAudioRecordingBanner;
+
+  if (btn) {
+    btn.classList.toggle("recording", isRecording);
+    btn.classList.toggle("is-recording", isRecording);
+    const textEl = btn.querySelector(".record-text");
+    if (textEl) textEl.textContent = isRecording ? "Stop Recording" : "Record Audio";
+    const glyph = btn.querySelector(".record-glyph");
+    if (glyph) glyph.textContent = isRecording ? "⏹" : "⏺";
+    btn.setAttribute("aria-label", isRecording ? "Stop recording audio" : "Record audio");
+  }
+
+  if (banner) {
+    banner.classList.toggle("hidden", !isRecording);
+  }
+}
+
+function stopActiveAudioRecording(targetType) {
+  const t = targetType || activeRecordingTarget;
+  if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
+    try {
+      activeMediaRecorder.stop();
+    } catch (e) {
+      console.warn("MediaRecorder stop error:", e);
+    }
+  }
+  if (activeMediaStream) {
+    try {
+      activeMediaStream.getTracks().forEach((track) => track.stop());
+    } catch {}
+  }
+  if (t) {
+    setRecordingUI(t, false);
+  }
+  activeMediaRecorder = null;
+  activeMediaStream = null;
+  activeRecordingTarget = null;
+}
+
+async function startAudioRecording(targetType) {
+  // If clicking on the currently recording target button, cleanly stop recording
+  if (activeMediaRecorder && activeRecordingTarget === targetType) {
+    stopActiveAudioRecording(targetType);
+    return;
+  }
+
+  // Ensure any other mic, speaker, or audio recording is stopped first
+  stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
+  if (activeMediaRecorder) {
+    stopActiveAudioRecording();
+  }
+
+  if (typeof window === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setStatus("Microphone recording is not supported in this browser. Please use keyboard or voice typing.", true);
+    return;
+  }
+
+  if (typeof MediaRecorder === "undefined") {
+    setStatus("MediaRecorder is not supported in this browser.", true);
+    return;
+  }
+
+  let stream;
+  try {
+    // CRITICAL REQUIREMENT: Request mic permission ONLY on user click
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    console.warn("Microphone access error:", err);
+    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+      setStatus("Microphone permission was denied. Allow microphone access in browser settings to record audio.", true);
+    } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+      setStatus("No microphone device was found on this system.", true);
+    } else {
+      setStatus(`Could not access microphone (${err.message || err.name}).`, true);
+    }
+    return;
+  }
+
+  try {
+    const supported = getSupportedAudioFormat();
+    const options = supported.mime ? { mimeType: supported.mime } : {};
+    const recorder = new MediaRecorder(stream, options);
+    const chunks = [];
+
+    recorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    recorder.onstop = async () => {
+      // Release hardware audio track
+      stream.getTracks().forEach((track) => track.stop());
+
+      const mime = recorder.mimeType || supported.mime || "audio/webm";
+      const blob = new Blob(chunks, { type: mime });
+      const ext = determineExtension(mime);
+
+      const qText = targetType === "main" ? state.currentQuestion : state.currentFollowUp;
+      const rec = {
+        id: `rec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+        sessionId: state.sessionId,
+        questionId: state.currentQuestionIndex + 1,
+        questionText: qText || (targetType === "main" ? "Question" : "Follow-Up"),
+        role: state.role || "Practice Role",
+        difficulty: state.difficulty || "Mid-Level",
+        answerType: targetType,
+        audioBlob: blob,
+        mimeType: mime,
+        fileExtension: ext,
+        recordingDate: new Date().toISOString(),
+      };
+
+      try {
+        await saveRecordingToDB(rec);
+        renderSavedAudioCard(targetType, rec);
+        await updateRecordingsBadge();
+        setStatus("Voice recording saved locally in IndexedDB! Completely untimed practice—submit whenever ready.", false);
+      } catch (err) {
+        console.error("Failed to save audio recording to IndexedDB:", err);
+        setStatus("Could not save recording to browser database.", true);
+      }
+    };
+
+    activeMediaRecorder = recorder;
+    activeMediaStream = stream;
+    activeAudioChunks = chunks;
+    activeRecordingTarget = targetType;
+
+    recorder.start();
+    setRecordingUI(targetType, true);
+    setStatus("Recording audio… speak clearly. Practice is completely untimed: click Stop Recording when finished.", false);
+  } catch (err) {
+    console.error("Failed to start MediaRecorder:", err);
+    stream.getTracks().forEach((track) => track.stop());
+    setStatus("Failed to start audio recording.", true);
+  }
+}
+
+function renderSavedAudioCard(targetType, record) {
+  const isMain = targetType === "main";
+  const card = isMain ? mainSavedAudioCard : followupSavedAudioCard;
+  const player = isMain ? mainAudioPlayer : followupAudioPlayer;
+  const formatBadge = isMain ? mainAudioFormatBadge : followupAudioFormatBadge;
+  const downloadBtn = isMain ? mainDownloadAudioBtn : followupDownloadAudioBtn;
+  const downloadText = isMain ? mainDownloadText : followupDownloadText;
+  const deleteBtn = isMain ? mainDeleteAudioBtn : followupDeleteAudioBtn;
+
+  if (!card) return;
+
+  if (!record || !record.audioBlob) {
+    card.classList.add("hidden");
+    if (player) {
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+    }
+    return;
+  }
+
+  const ext = record.fileExtension || determineExtension(record.mimeType);
+  if (formatBadge) formatBadge.textContent = ext.toUpperCase();
+  if (downloadText) downloadText.textContent = `Download (.${ext})`;
+
+  const blobUrl = URL.createObjectURL(record.audioBlob);
+  if (player) {
+    player.src = blobUrl;
+  }
+
+  if (downloadBtn) {
+    downloadBtn.onclick = () => {
+      triggerAudioDownload(record);
+    };
+  }
+
+  if (deleteBtn) {
+    deleteBtn.onclick = async () => {
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this audio recording? This action cannot be undone."
+      );
+      if (!confirmed) return;
+
+      try {
+        await deleteRecordingFromDB(record.id);
+        card.classList.add("hidden");
+        if (player) {
+          player.pause();
+          player.removeAttribute("src");
+          player.load();
+        }
+        await updateRecordingsBadge();
+        setStatus("Audio recording deleted.", false);
+        if (recordingsModal && !recordingsModal.classList.contains("hidden")) {
+          renderRecordingsList();
+        }
+      } catch (err) {
+        console.error("Error deleting recording:", err);
+        setStatus("Could not delete recording.", true);
+      }
+    };
+  }
+
+  card.classList.remove("hidden");
+}
+
+// Wire Audio Recording Buttons
+mainRecordBtn?.addEventListener("click", () => startAudioRecording("main"));
+mainStopAudioBtn?.addEventListener("click", () => stopActiveAudioRecording("main"));
+
+followupRecordBtn?.addEventListener("click", () => startAudioRecording("followup"));
+followupStopAudioBtn?.addEventListener("click", () => stopActiveAudioRecording("followup"));
+
+// ==========================================================================
 // SCREEN 1 -> SCREEN 2: START CHALLENGE
 // ==========================================================================
 startInterviewBtn.addEventListener("click", async () => {
@@ -508,6 +795,7 @@ startInterviewBtn.addEventListener("click", async () => {
 
   state.role = role;
   state.difficulty = difficultyInput.value;
+  state.sessionId = "session_" + Date.now();
   state.currentQuestionIndex = 0;
   state.score = 0;
   state.streak = 0;
@@ -526,7 +814,7 @@ startInterviewBtn.addEventListener("click", async () => {
     });
 
     state.currentQuestion = data.question;
-    renderQuestionScreen(1, data.question);
+    await renderQuestionScreen(1, data.question);
   } catch (error) {
     setStatus(error.message, true);
   } finally {
@@ -534,9 +822,10 @@ startInterviewBtn.addEventListener("click", async () => {
   }
 });
 
-function renderQuestionScreen(qNum, questionText) {
+async function renderQuestionScreen(qNum, questionText) {
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   setStatus("");
 
   qRoundLabel.textContent = `ROUND ${qNum} OF ${state.totalQuestions}`;
@@ -546,6 +835,14 @@ function renderQuestionScreen(qNum, questionText) {
   questionHeading.textContent = questionText;
   mainAnswerInput.value = "";
   updateWordCounter(mainAnswerInput, mainWordCounter);
+
+  // Restore existing recording for this question in this session if present
+  try {
+    const existingRec = await getLatestRecordingForQuestion(state.sessionId, qNum, "main");
+    renderSavedAudioCard("main", existingRec);
+  } catch (err) {
+    renderSavedAudioCard("main", null);
+  }
 
   updateHud(qNum);
   showScreen(questionCard);
@@ -565,6 +862,7 @@ submitMainAnswerBtn.addEventListener("click", async () => {
 
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   state.currentAnswer = answer;
 
   setStatus("");
@@ -579,7 +877,7 @@ submitMainAnswerBtn.addEventListener("click", async () => {
     });
 
     state.currentFollowUp = data.followUpQuestion;
-    renderFollowupScreen();
+    await renderFollowupScreen();
   } catch (error) {
     setStatus(error.message, true);
   } finally {
@@ -587,9 +885,10 @@ submitMainAnswerBtn.addEventListener("click", async () => {
   }
 });
 
-function renderFollowupScreen() {
+async function renderFollowupScreen() {
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   setStatus("");
 
   const qNum = state.currentQuestionIndex + 1;
@@ -600,6 +899,14 @@ function renderFollowupScreen() {
   followupAnswerInput.value = "";
   updateWordCounter(followupAnswerInput, followupWordCounter);
 
+  // Restore existing follow-up recording for this question in this session if present
+  try {
+    const existingRec = await getLatestRecordingForQuestion(state.sessionId, qNum, "followup");
+    renderSavedAudioCard("followup", existingRec);
+  } catch (err) {
+    renderSavedAudioCard("followup", null);
+  }
+
   updateHud(qNum);
   showScreen(followupCard);
   followupAnswerInput.focus();
@@ -608,6 +915,7 @@ function renderFollowupScreen() {
 retryQuestionBtn.addEventListener("click", () => {
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   mainAnswerInput.value = "";
   updateWordCounter(mainAnswerInput, mainWordCounter);
   mainAnswerInput?.focus();
@@ -712,13 +1020,16 @@ function renderFeedbackScreen(feedback, roundPoints) {
   showScreen(feedbackCard);
 }
 
-retryCurrentQuestionBtn.addEventListener("click", () => {
+retryCurrentQuestionBtn.addEventListener("click", async () => {
+  stopActiveVoiceInput();
+  stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   if (state.history.length > state.currentQuestionIndex) {
     const last = state.history.pop();
     state.score = Math.max(0, state.score - (last?.roundPoints || 200));
     state.streak = Math.max(0, state.streak - 1);
   }
-  renderQuestionScreen(state.currentQuestionIndex + 1, state.currentQuestion);
+  await renderQuestionScreen(state.currentQuestionIndex + 1, state.currentQuestion);
 });
 
 // ==========================================================================
@@ -727,6 +1038,7 @@ retryCurrentQuestionBtn.addEventListener("click", () => {
 nextQuestionBtn.addEventListener("click", async () => {
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   if (state.currentQuestionIndex >= state.totalQuestions - 1) {
     await completeInterviewSession();
     return;
@@ -748,7 +1060,7 @@ nextQuestionBtn.addEventListener("click", async () => {
     });
 
     state.currentQuestion = data.question;
-    renderQuestionScreen(nextQNum, data.question);
+    await renderQuestionScreen(nextQNum, data.question);
   } catch (error) {
     setStatus(error.message, true);
     state.currentQuestionIndex--;
@@ -775,15 +1087,16 @@ async function completeInterviewSession() {
       history: state.history,
     });
 
-    renderFinalSummary(summary);
+    await renderFinalSummary(summary);
   } catch (error) {
     setStatus(error.message, true);
   }
 }
 
-function renderFinalSummary(summary) {
+async function renderFinalSummary(summary) {
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   setStatus("");
   triggerConfetti();
 
@@ -815,6 +1128,9 @@ function renderFinalSummary(summary) {
 
   // Next Practice Suggestion
   summarySuggestionText.textContent = summary.nextPracticeSuggestion || "Continue practicing structured responses.";
+
+  // Render Session Voice Recordings
+  await renderSessionRecordingsSection();
 
   // Render Transcript Accordion
   transcriptAccordionContainer.replaceChildren(
@@ -893,13 +1209,292 @@ endInterviewBtnFeedback?.addEventListener("click", confirmEndInterview);
 restartInterviewBtn?.addEventListener("click", () => {
   stopActiveVoiceInput();
   stopActiveSpeechPlayback();
+  stopActiveAudioRecording();
   state.history = [];
   state.currentQuestionIndex = 0;
   state.score = 0;
   state.streak = 0;
   state.maxStreak = 0;
+  state.sessionId = "session_" + Date.now();
   showScreen(setupCard);
 });
+
+// ==========================================================================
+// SESSION AUDIO RECORDINGS & INDEXEDDB ARCHIVE MODAL
+// ==========================================================================
+
+async function renderSessionRecordingsSection() {
+  if (!sessionRecordingsList) return;
+  try {
+    const sessionRecs = await getRecordingsBySession(state.sessionId);
+    if (sessionRecs.length === 0) {
+      sessionRecordingsList.innerHTML = `
+        <p class="empty-state-desc" style="margin: 0; padding: 12px 0;">
+          No audio was recorded during this session. All typed and voice-transcribed responses are available in the Full Session Review below.
+        </p>
+      `;
+      return;
+    }
+
+    sessionRecordingsList.replaceChildren(
+      ...sessionRecs.map((rec) => {
+        const row = document.createElement("div");
+        row.className = "recording-item-card";
+
+        const ext = rec.fileExtension || determineExtension(rec.mimeType);
+        const typeLabel = rec.answerType === "followup" ? "Follow-Up Response" : "Main Response";
+        const typeClass = rec.answerType === "followup" ? "type-followup" : "type-main";
+
+        row.innerHTML = `
+          <div class="recording-card-header">
+            <div class="recording-card-tags">
+              <span class="recording-role-pill">Round ${rec.questionId}</span>
+              <span class="recording-type-pill ${typeClass}">${typeLabel}</span>
+              <span class="audio-format-badge">${ext.toUpperCase()}</span>
+            </div>
+            <span class="recording-date-text">${formatRecordingDate(rec.recordingDate)}</span>
+          </div>
+          <p class="recording-question-quote">"${escapeHtml(rec.questionText)}"</p>
+          <div class="recording-playback-row">
+            <audio class="recording-audio-ctrl" controls preload="metadata"></audio>
+            <div class="recording-card-actions">
+              <button type="button" class="btn-audio-subaction btn-download-row" title="Download audio recording">
+                ⬇ Download (.${ext})
+              </button>
+              <button type="button" class="btn-audio-subaction btn-delete-audio btn-delete-row" title="Delete audio recording">
+                🗑 Delete
+              </button>
+            </div>
+          </div>
+        `;
+
+        const audioEl = row.querySelector("audio");
+        audioEl.src = URL.createObjectURL(rec.audioBlob);
+
+        row.querySelector(".btn-download-row").onclick = () => triggerAudioDownload(rec);
+        row.querySelector(".btn-delete-row").onclick = async () => {
+          const confirmed = window.confirm(
+            "Are you sure you want to permanently delete this audio recording? This action cannot be undone."
+          );
+          if (!confirmed) return;
+
+          await deleteRecordingFromDB(rec.id);
+          row.remove();
+          await updateRecordingsBadge();
+          if (sessionRecordingsList.children.length === 0) {
+            renderSessionRecordingsSection();
+          }
+        };
+
+        return row;
+      })
+    );
+  } catch (err) {
+    console.error("Error rendering session recordings section:", err);
+  }
+}
+
+function openRecordingsModal() {
+  if (!recordingsModal) return;
+  recordingsModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  populateRecordingsRoleFilter();
+  renderRecordingsList();
+}
+
+function closeRecordingsModal() {
+  if (!recordingsModal) return;
+  // Pause any audio playing inside the modal
+  recordingsModal.querySelectorAll("audio").forEach((a) => {
+    try {
+      a.pause();
+    } catch {}
+  });
+  recordingsModal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+async function populateRecordingsRoleFilter() {
+  if (!recordingsFilterRole) return;
+  const all = await getAllRecordingsFromDB();
+  const roles = Array.from(new Set(all.map((r) => r.role).filter(Boolean))).sort();
+
+  const currentVal = recordingsFilterRole.value;
+  recordingsFilterRole.innerHTML = `<option value="all">All Roles</option>`;
+  roles.forEach((r) => {
+    const opt = document.createElement("option");
+    opt.value = r;
+    opt.textContent = r;
+    if (r === currentVal) opt.selected = true;
+    recordingsFilterRole.appendChild(opt);
+  });
+}
+
+function formatRecordingDate(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return dateStr || "";
+  }
+}
+
+async function renderRecordingsList() {
+  if (!recordingsListContainer) return;
+  const all = await getAllRecordingsFromDB();
+
+  const roleFilter = recordingsFilterRole?.value || "all";
+  const typeFilter = recordingsFilterType?.value || "all";
+
+  const filtered = all.filter((r) => {
+    if (roleFilter !== "all" && r.role !== roleFilter) return false;
+    if (typeFilter !== "all" && r.answerType !== typeFilter) return false;
+    return true;
+  });
+
+  if (recordingsModalBadge) {
+    recordingsModalBadge.textContent = all.length;
+  }
+
+  if (filtered.length === 0) {
+    recordingsListContainer.innerHTML = `
+      <div class="recordings-empty-state">
+        <div class="empty-state-icon" aria-hidden="true">🎙️</div>
+        <h4 class="empty-state-title">No Audio Recordings Found</h4>
+        <p class="empty-state-desc">
+          ${
+            all.length === 0
+              ? "When practicing any question, click 'Record Audio' to capture your spoken response. All takes are stored locally in your browser's IndexedDB and preserved across sessions."
+              : "No recordings match your current filter selection. Try selecting 'All Roles' or 'All Answers'."
+          }
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  recordingsListContainer.replaceChildren(
+    ...filtered.map((rec) => {
+      const card = document.createElement("article");
+      card.className = "recording-item-card";
+
+      const ext = rec.fileExtension || determineExtension(rec.mimeType);
+      const typeLabel = rec.answerType === "followup" ? "Follow-Up Response" : "Main Response";
+      const typeClass = rec.answerType === "followup" ? "type-followup" : "type-main";
+      const qNumText = rec.questionId ? `Q${rec.questionId}` : "Practice Round";
+
+      card.innerHTML = `
+        <div class="recording-card-header">
+          <div class="recording-card-tags">
+            <span class="recording-role-pill">${escapeHtml(rec.role || "Practice")}</span>
+            <span class="recording-type-pill ${typeClass}">${qNumText} • ${typeLabel}</span>
+            <span class="audio-format-badge">${ext.toUpperCase()}</span>
+          </div>
+          <span class="recording-date-text">${formatRecordingDate(rec.recordingDate)}</span>
+        </div>
+        <p class="recording-question-quote">"${escapeHtml(rec.questionText)}"</p>
+        <div class="recording-playback-row">
+          <audio class="recording-audio-ctrl" controls preload="metadata"></audio>
+          <div class="recording-card-actions">
+            <button type="button" class="btn-audio-subaction btn-download-row" title="Download recording">
+              ⬇ Download (.${ext})
+            </button>
+            <button type="button" class="btn-audio-subaction btn-delete-audio btn-delete-row" title="Delete recording">
+              🗑 Delete
+            </button>
+          </div>
+        </div>
+      `;
+
+      const audioEl = card.querySelector("audio");
+      audioEl.src = URL.createObjectURL(rec.audioBlob);
+
+      card.querySelector(".btn-download-row").onclick = () => triggerAudioDownload(rec);
+      card.querySelector(".btn-delete-row").onclick = async () => {
+        const confirmed = window.confirm(
+          "Are you sure you want to permanently delete this audio recording? This action cannot be undone."
+        );
+        if (!confirmed) return;
+
+        await deleteRecordingFromDB(rec.id);
+        card.remove();
+        await updateRecordingsBadge();
+
+        // Check if active question view is displaying this deleted recording
+        if (state.sessionId === rec.sessionId) {
+          if (rec.answerType === "main" && !questionCard.hidden) {
+            mainSavedAudioCard.classList.add("hidden");
+          }
+          if (rec.answerType === "followup" && !followupCard.hidden) {
+            followupSavedAudioCard.classList.add("hidden");
+          }
+        }
+        renderRecordingsList();
+      };
+
+      return card;
+    })
+  );
+}
+
+async function updateRecordingsBadge() {
+  try {
+    const all = await getAllRecordingsFromDB();
+    const count = all.length;
+    if (navRecordingsCount) navRecordingsCount.textContent = count;
+    if (hudRecordingsCount) hudRecordingsCount.textContent = count;
+    if (launcherRecordingsCount) launcherRecordingsCount.textContent = count;
+    if (recordingsModalBadge) recordingsModalBadge.textContent = count;
+    if (summaryTotalRecordingsCount) summaryTotalRecordingsCount.textContent = count;
+  } catch (err) {
+    console.warn("Could not query recordings count:", err);
+  }
+}
+
+// Clear All Recordings Handler
+clearAllRecordingsBtn?.addEventListener("click", async () => {
+  const all = await getAllRecordingsFromDB();
+  if (all.length === 0) {
+    alert("You have no saved recordings to clear.");
+    return;
+  }
+  const confirmed = window.confirm(
+    `Are you sure you want to permanently delete all ${all.length} saved audio recording(s)? This will erase all recorded audio files from this device's IndexedDB.`
+  );
+  if (!confirmed) return;
+
+  await clearAllRecordingsFromDB();
+  mainSavedAudioCard?.classList.add("hidden");
+  followupSavedAudioCard?.classList.add("hidden");
+  await updateRecordingsBadge();
+  await populateRecordingsRoleFilter();
+  renderRecordingsList();
+  setStatus("All audio recordings have been cleared from this device.", false);
+});
+
+// Wire Recordings Modal Open & Filter Handlers
+navRecordingsBtn?.addEventListener("click", openRecordingsModal);
+hudRecordingsBtn?.addEventListener("click", openRecordingsModal);
+launcherRecordingsBtn?.addEventListener("click", openRecordingsModal);
+viewAllRecordingsSummaryBtn?.addEventListener("click", openRecordingsModal);
+
+recordingsModalClose?.addEventListener("click", closeRecordingsModal);
+recordingsModalDismiss?.addEventListener("click", closeRecordingsModal);
+
+recordingsModal?.addEventListener("click", (e) => {
+  if (e.target === recordingsModal) {
+    closeRecordingsModal();
+  }
+});
+
+recordingsFilterRole?.addEventListener("change", renderRecordingsList);
+recordingsFilterType?.addEventListener("change", renderRecordingsList);
 
 // Keyboard Shortcut: Ctrl+Enter / Cmd+Enter
 document.addEventListener("keydown", (e) => {
@@ -913,8 +1508,12 @@ document.addEventListener("keydown", (e) => {
     }
   }
 
-  if (e.key === "Escape" && demoModal && !demoModal.classList.contains("hidden")) {
-    closeDemoModal();
+  if (e.key === "Escape") {
+    if (recordingsModal && !recordingsModal.classList.contains("hidden")) {
+      closeRecordingsModal();
+    } else if (demoModal && !demoModal.classList.contains("hidden")) {
+      closeDemoModal();
+    }
   }
 });
 
@@ -987,5 +1586,8 @@ checkInitialHash();
 // Ensure initial landing state classes on body
 document.body.classList.add("landing-active");
 document.body.classList.remove("session-active");
+
+// Initialize Saved Audio Recordings from IndexedDB
+updateRecordingsBadge();
 
 

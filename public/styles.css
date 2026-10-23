@@ -2912,3 +2912,557 @@ body {
     font-size: 2.2rem;
   }
 }
+
+/* ==========================================================================
+   AUDIO RECORDING CONTROLS & INDEXEDDB ARCHIVE STYLES
+   ========================================================================== */
+
+/* 1. Header & HUD Recording Triggers */
+.recordings-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--bg-cream-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.recordings-nav-btn:hover {
+  background: var(--bg-cream-surface);
+  border-color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.nav-recordings-count,
+.recordings-badge-pill {
+  background: var(--text-primary);
+  color: #FAF8F5;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.recordings-hud-chip {
+  background: #FFFFFF;
+  border: 1px solid var(--bg-cream-border);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.recordings-hud-chip:hover {
+  border-color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.recordings-launcher-btn {
+  gap: 8px;
+}
+
+/* 2. Answer Zone "Record Audio" / "Stop Recording" Button */
+.btn-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FEF2F2;
+  border: 1.5px solid #FCA5A5;
+  color: #B91C1C;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-record:hover {
+  background: #FEE2E2;
+  border-color: #EF4444;
+  transform: translateY(-1px);
+}
+
+.btn-record:active {
+  transform: translateY(0);
+}
+
+.btn-record.recording,
+.btn-record.is-recording {
+  background: #DC2626;
+  border-color: #991B1B;
+  color: #FFFFFF;
+  animation: audioRecordPulseGlow 1.2s infinite alternate;
+}
+
+@keyframes audioRecordPulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+  100% { box-shadow: 0 0 0 9px rgba(220, 38, 38, 0); }
+}
+
+.record-glyph {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* 3. Audio Recording Indicator Banner (Completely Untimed, No Countdown, No Auto-Submit) */
+.audio-recording-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #FEF2F2;
+  border: 1.5px solid #F87171;
+  color: #991B1B;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  animation: bannerSlideIn 0.2s ease-out;
+}
+
+.audio-recording-status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audio-live-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #DC2626;
+  display: inline-block;
+  animation: recordPulseDot 0.8s infinite alternate;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+}
+
+@keyframes recordPulseDot {
+  from { transform: scale(0.75); opacity: 0.6; }
+  to { transform: scale(1.25); opacity: 1; }
+}
+
+.btn-mini-stop-rec {
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.btn-mini-stop-rec:hover {
+  background: #B91C1C;
+}
+
+/* 4. Saved Audio Card (Inline In Answer Zone) */
+.saved-audio-card {
+  background: #FFFFFF;
+  border: 1.5px solid var(--bg-cream-border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  animation: bannerSlideIn 0.2s ease-out;
+  box-shadow: var(--shadow-subtle);
+}
+
+.saved-audio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.saved-audio-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audio-tag-glyph {
+  font-size: 0.95rem;
+}
+
+.saved-audio-title {
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+}
+
+.audio-format-badge {
+  background: #F4EFEB;
+  border: 1px solid var(--bg-cream-border);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.saved-audio-note {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.saved-audio-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.audio-preview-element {
+  flex: 1;
+  min-width: 220px;
+  height: 38px;
+  outline: none;
+}
+
+.saved-audio-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-audio-subaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FAF8F5;
+  border: 1px solid var(--bg-cream-border);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-audio-subaction:hover {
+  background: #EFE9DF;
+  border-color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.btn-audio-subaction.btn-delete-audio {
+  color: #B91C1C;
+  background: #FFF5F5;
+  border-color: #FECDD3;
+}
+
+.btn-audio-subaction.btn-delete-audio:hover {
+  background: #FEE2E2;
+  border-color: #F87171;
+}
+
+/* 5. Full Audio Recordings Modal (IndexedDB Archive) */
+.recordings-modal-window {
+  max-width: 860px;
+  width: 92%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.recordings-modal-header {
+  border-bottom: 1px solid var(--bg-cream-border-subtle);
+  padding: 22px 28px 18px;
+}
+
+.recordings-modal-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recordings-modal-sub {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.recordings-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 28px;
+  background: #FAF8F5;
+  border-bottom: 1px solid var(--bg-cream-border-subtle);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.recordings-filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.recordings-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.recordings-select {
+  padding: 6px 10px;
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: #FFFFFF;
+  border: 1px solid var(--bg-cream-border);
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.recordings-select:focus {
+  border-color: var(--text-primary);
+}
+
+.btn-clear-recordings {
+  background: transparent;
+  border: 1px solid #FECDD3;
+  color: #B91C1C;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-clear-recordings:hover {
+  background: #FEE2E2;
+  border-color: #F87171;
+}
+
+.recordings-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Individual Recording Card in Modal */
+.recording-item-card {
+  background: #FAF8F5;
+  border: 1.5px solid var(--bg-cream-border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.recording-item-card:hover {
+  border-color: #D6CEBE;
+}
+
+.recording-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.recording-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recording-role-pill {
+  background: var(--text-primary);
+  color: #FAF8F5;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.recording-type-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--bg-cream-border);
+  background: #FFFFFF;
+  color: var(--text-secondary);
+}
+
+.recording-type-pill.type-main {
+  color: #15803D;
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.recording-type-pill.type-followup {
+  color: #7C3AED;
+  background: #F5F3FF;
+  border-color: #DDD6FE;
+}
+
+.recording-date-text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.recording-question-quote {
+  font-size: 0.94rem;
+  font-style: italic;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+  padding-left: 12px;
+  border-left: 3px solid var(--bg-cream-border);
+  line-height: 1.5;
+}
+
+.recording-playback-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #FFFFFF;
+  border: 1px solid var(--bg-cream-border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.recording-audio-ctrl {
+  flex: 1;
+  min-width: 220px;
+  height: 36px;
+}
+
+.recording-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.recordings-empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  font-size: 2.8rem;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.empty-state-title {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.empty-state-desc {
+  font-size: 0.9rem;
+  max-width: 440px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.recordings-storage-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* 6. Summary Screen Session Recordings Block */
+.session-recordings-block {
+  margin-top: 24px;
+}
+
+.summary-view-recordings-link {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-left: auto;
+}
+
+.summary-view-recordings-link:hover {
+  color: #B91C1C;
+}
+
+.session-recordings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Mobile responsive adjustments for recording controls */
+@media (max-width: 640px) {
+  .saved-audio-body,
+  .recording-playback-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .audio-preview-element,
+  .recording-audio-ctrl {
+    width: 100%;
+  }
+
+  .saved-audio-actions,
+  .recording-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .recordings-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
