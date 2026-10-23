@@ -44,6 +44,14 @@ let activeAudioChunks = [];
 let activeRecordingTarget = null; // 'main' or 'followup'
 let activeAudioElement = null;
 
+// Client-side TTS Protection State (avoids spamming paid provider on quota/rate-limit/auth errors)
+const ttsClientState = {
+  disabled: false, // Set to true when key missing (503), quota exceeded (402), or cancelled (401)
+  cooldownUntil: 0, // Rate-limit / backoff timestamp
+  failureCount: 0,
+  accessCode: typeof sessionStorage !== "undefined" ? sessionStorage.getItem("tts_demo_code") || "" : "",
+};
+
 // DOM Elements - Screens & HUD
 const gameHud = document.querySelector("#game-hud");
 const hudQVal = document.querySelector("#hud-q-val");
@@ -504,20 +512,40 @@ async function toggleSpeechPlayback(text, speakerBtn) {
   speakerBtn.classList.add("speaking");
   const label = speakerBtn.querySelector(".speaker-label");
   const icon = speakerBtn.querySelector(".speaker-icon");
+
+  // 1. If provider is disabled or in backoff/cooldown, skip paid provider call immediately
+  if (ttsClientState.disabled) {
+    fallbackBrowserTTS(cleanText, speakerBtn, "AI voice offline/quota limit");
+    return;
+  }
+
+  const now = Date.now();
+  if (now < ttsClientState.cooldownUntil) {
+    const waitSec = Math.ceil((ttsClientState.cooldownUntil - now) / 1000);
+    fallbackBrowserTTS(cleanText, speakerBtn, `rate limit active (${waitSec}s remaining)`);
+    return;
+  }
+
   if (label) label.textContent = "Loading…";
   if (icon) icon.textContent = "⏳";
   speakerBtn.setAttribute("aria-label", "Loading audio playback");
-  setStatus("Generating realistic interviewer audio…", false);
+  setStatus("Generating realistic interviewer audio (ElevenLabs)…", false);
 
-  // 1. Try realistic ElevenLabs AI voice via backend endpoint first
+  // 2. Request realistic ElevenLabs AI voice via backend endpoint
   try {
+    const headers = { "Content-Type": "application/json" };
+    if (ttsClientState.accessCode) {
+      headers["x-access-code"] = ttsClientState.accessCode;
+    }
+
     const response = await fetch("/api/tts", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ text: cleanText }),
     });
 
     if (response.ok) {
+      ttsClientState.failureCount = 0;
       const blob = await response.blob();
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
@@ -537,21 +565,78 @@ async function toggleSpeechPlayback(text, speakerBtn) {
 
       audio.onerror = () => {
         URL.revokeObjectURL(audioUrl);
-        fallbackBrowserTTS(cleanText, speakerBtn);
+        fallbackBrowserTTS(cleanText, speakerBtn, "audio decoding error");
       };
 
       await audio.play();
       return;
     }
-  } catch (err) {
-    console.warn("ElevenLabs TTS unavailable, falling back to browser speech synthesis:", err);
-  }
 
-  // 2. Seamless fallback: Browser SpeechSynthesis
-  fallbackBrowserTTS(cleanText, speakerBtn);
+    // Handle structured HTTP error responses
+    const errorData = await response.json().catch(() => ({}));
+
+    // Access Code Gate (401)
+    if (response.status === 401 && errorData.code === "ACCESS_CODE_REQUIRED") {
+      const enteredCode = window.prompt(
+        "A private demo access code is required for realistic ElevenLabs AI voice.\n\nEnter access code (or click Cancel to use built-in browser voice):"
+      );
+      if (enteredCode && enteredCode.trim()) {
+        ttsClientState.accessCode = enteredCode.trim();
+        try {
+          sessionStorage.setItem("tts_demo_code", ttsClientState.accessCode);
+        } catch {}
+        // Retry once with the entered access code
+        return toggleSpeechPlayback(text, speakerBtn);
+      } else {
+        // User cancelled — use browser fallback for this session
+        ttsClientState.disabled = true;
+        fallbackBrowserTTS(cleanText, speakerBtn, "access code not supplied");
+        return;
+      }
+    }
+
+    // Quota Exceeded (402)
+    if (response.status === 402 || errorData.code === "PAYMENT_REQUIRED") {
+      ttsClientState.disabled = true;
+      setStatus("ElevenLabs monthly quota reached. Switched to browser voice fallback.", false);
+      fallbackBrowserTTS(cleanText, speakerBtn, "ElevenLabs quota reached");
+      return;
+    }
+
+    // Rate Limit Throttled (429)
+    if (response.status === 429) {
+      const retryAfter = errorData.retryAfterSeconds || 60;
+      ttsClientState.cooldownUntil = Date.now() + retryAfter * 1000;
+      setStatus(`Rate limit reached: Throttling to protect quota (${retryAfter}s). Using browser voice.`, false);
+      fallbackBrowserTTS(cleanText, speakerBtn, `rate limited (${retryAfter}s)`);
+      return;
+    }
+
+    // Provider Disabled (503)
+    if (response.status === 503) {
+      ttsClientState.disabled = true;
+      fallbackBrowserTTS(cleanText, speakerBtn, "provider unconfigured");
+      return;
+    }
+
+    // General Upstream / Server Error
+    ttsClientState.failureCount++;
+    if (ttsClientState.failureCount >= 2) {
+      // Cooldown for 2 minutes to prevent repeated failing requests
+      ttsClientState.cooldownUntil = Date.now() + 120 * 1000;
+    }
+    fallbackBrowserTTS(cleanText, speakerBtn, "ElevenLabs temporarily unavailable");
+  } catch (err) {
+    console.warn("ElevenLabs TTS network error, falling back to browser speech synthesis:", err);
+    ttsClientState.failureCount++;
+    if (ttsClientState.failureCount >= 2) {
+      ttsClientState.cooldownUntil = Date.now() + 120 * 1000;
+    }
+    fallbackBrowserTTS(cleanText, speakerBtn, "network error");
+  }
 }
 
-function fallbackBrowserTTS(cleanText, speakerBtn) {
+function fallbackBrowserTTS(cleanText, speakerBtn, fallbackReason = "") {
   if (typeof window === "undefined" || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
     stopActiveSpeechPlayback();
     setStatus("Text-to-speech audio is not supported in this browser.", true);
@@ -569,11 +654,13 @@ function fallbackBrowserTTS(cleanText, speakerBtn) {
       state.activeSpeakerBtn = speakerBtn;
       speakerBtn.classList.add("speaking");
       const label = speakerBtn.querySelector(".speaker-label");
-      if (label) label.textContent = "Stop";
+      if (label) label.textContent = "Stop (Browser)";
       const icon = speakerBtn.querySelector(".speaker-icon");
       if (icon) icon.textContent = "⏹";
-      speakerBtn.setAttribute("aria-label", "Stop audio playback");
-      setStatus("Reading question aloud… Click Stop to pause.", false);
+      speakerBtn.setAttribute("aria-label", "Stop browser audio playback");
+
+      const reasonNote = fallbackReason ? ` [${fallbackReason}]` : "";
+      setStatus(`Reading question aloud (Browser Voice${reasonNote})… Click Stop to pause.`, false);
     };
 
     utterance.onend = () => {

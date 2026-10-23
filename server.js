@@ -9,6 +9,15 @@ import {
   generateInterviewSummary,
 } from "./lib/gemini.js";
 import { generateSpeech } from "./lib/elevenlabs.js";
+import {
+  validateOrigin,
+  getTrustedClientIp,
+  checkRateLimit,
+  verifyAccessCode,
+  validateTtsPayload,
+  readJsonBodyWithLimit,
+  MAX_BODY_BYTES,
+} from "./lib/tts-security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -101,15 +110,51 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, summary);
     }
 
-    if (req.method === "POST" && url.pathname === "/api/tts") {
-      const body = await readJsonBody(req);
-      const text = String(body.text || "").trim();
-      if (!text) {
-        return sendJson(res, 400, { error: "Text is required for TTS." });
+    if (url.pathname === "/api/tts") {
+      if (req.method !== "POST") {
+        res.setHeader("Allow", ["POST"]);
+        return sendJson(res, 405, { error: "Method not allowed. Use POST.", code: "METHOD_NOT_ALLOWED" });
+      }
+
+      const originCheck = validateOrigin(req);
+      if (!originCheck.allowed) {
+        return sendJson(res, 403, { error: originCheck.reason || "Forbidden: Origin not permitted.", code: "ORIGIN_FORBIDDEN" });
+      }
+
+      if (!process.env.ELEVENLABS_API_KEY?.trim()) {
+        return sendJson(res, 503, { error: "Text-to-speech service is currently unconfigured or disabled.", code: "PROVIDER_DISABLED" });
+      }
+
+      const gateCheck = verifyAccessCode(req);
+      if (!gateCheck.allowed) {
+        return sendJson(res, gateCheck.status || 401, { error: gateCheck.error, code: gateCheck.code });
+      }
+
+      const clientIp = getTrustedClientIp(req);
+      const rateLimit = checkRateLimit(clientIp);
+      if (!rateLimit.allowed) {
+        res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds || 60));
+        return sendJson(res, rateLimit.status || 429, {
+          error: rateLimit.error,
+          code: rateLimit.code,
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+        });
+      }
+
+      let body;
+      try {
+        body = await readJsonBodyWithLimit(req, MAX_BODY_BYTES);
+      } catch (err) {
+        return sendJson(res, err.status || 400, { error: err.message || "Invalid request body.", code: err.code || "INVALID_BODY" });
+      }
+
+      const validation = validateTtsPayload(body);
+      if (!validation.valid) {
+        return sendJson(res, validation.status || 400, { error: validation.error, code: validation.code });
       }
 
       try {
-        const audioBuffer = await generateSpeech({ text, voiceId: body.voiceId });
+        const audioBuffer = await generateSpeech({ text: validation.text, voiceId: validation.voiceId });
         res.writeHead(200, {
           "Content-Type": "audio/mpeg",
           "Content-Length": audioBuffer.length,
@@ -118,7 +163,11 @@ const server = createServer(async (req, res) => {
         return res.end(audioBuffer);
       } catch (err) {
         console.error("Local server TTS error:", err.message);
-        return sendJson(res, 500, { error: err.message });
+        const isQuota = err.message.toLowerCase().includes("quota") || err.message.toLowerCase().includes("payment_required") || err.message.includes("402");
+        if (isQuota) {
+          return sendJson(res, 402, { error: "ElevenLabs quota reached. Falling back to browser voice.", code: "PAYMENT_REQUIRED" });
+        }
+        return sendJson(res, 502, { error: "Text-to-speech provider temporarily unavailable. Falling back to browser voice.", code: "UPSTREAM_TTS_ERROR" });
       }
     }
 
