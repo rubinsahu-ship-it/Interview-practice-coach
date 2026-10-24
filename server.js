@@ -74,8 +74,13 @@ const server = createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/feedback") {
       const body = await readJsonBody(req);
       const role = String(body.role || "").trim();
+      const difficulty = String(body.difficulty || "Mid-Level").trim();
       const question = String(body.question || "").trim();
       const answer = String(body.answer || "").trim();
+      const followUpQuestion = String(body.followUpQuestion || "").trim();
+      const followUpAnswer = String(body.followUpAnswer || "").trim();
+      const sessionId = String(body.sessionId || "").trim();
+      const round = Number(body.round) || 1;
 
       if (!role || !question || !answer) {
         return sendJson(res, 400, {
@@ -83,15 +88,26 @@ const server = createServer(async (req, res) => {
         });
       }
 
-      const feedback = await scoreFeedback({
-        role,
-        difficulty: body.difficulty,
-        question,
-        answer,
-        followUpQuestion: body.followUpQuestion,
-        followUpAnswer: body.followUpAnswer,
-      });
-      return sendJson(res, 200, feedback);
+      try {
+        const feedback = await scoreFeedback({
+          role,
+          difficulty,
+          question,
+          answer,
+          followUpQuestion,
+          followUpAnswer,
+          sessionId,
+          round,
+        });
+        return sendJson(res, 200, feedback);
+      } catch (err) {
+        console.error("Evaluation error:", err.message);
+        const status = err.status || 502;
+        return sendJson(res, status, {
+          error: "Evaluation service temporarily unavailable. Please click Retry to evaluate again.",
+          code: "EVALUATION_ERROR",
+        });
+      }
     }
 
     if (req.method === "POST" && url.pathname === "/api/summary") {
@@ -177,7 +193,7 @@ const server = createServer(async (req, res) => {
 
     sendJson(res, 404, { error: "Not found." });
   } catch (error) {
-    console.error(error);
+    console.error("Server error:", error.message || "Unknown error");
     const status = error.status || 500;
     sendJson(res, status, { error: error.message || "Something went wrong." });
   }

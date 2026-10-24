@@ -514,6 +514,9 @@
               <button id="submit-followup-btn" type="button" class="game-btn btn-action-primary">
                 <span>REVEAL FEEDBACK 💥</span>
               </button>
+              <button id="skip-followup-btn" type="button" class="game-btn btn-action-ghost" title="Skip follow-up and get feedback on your main answer">
+                <span>Skip Follow-Up ➔</span>
+              </button>
             </div>
           </div>
         </section>
@@ -527,16 +530,37 @@
               <span class="streak-awarded-pill" id="feedback-streak-pill">🔥 STREAK: 1</span>
             </div>
             <h2 id="feedback-heading" class="result-title">Round <span id="feedback-round-num">1</span> Breakdown</h2>
-            <p class="result-subtitle">Here is your 3-part coaching debrief:</p>
+            <p class="result-subtitle" id="feedback-subtitle">Evidence-based rubric debrief & coaching feedback:</p>
+            <div id="feedback-assessability-notice" class="assessability-banner hidden" role="alert"></div>
           </div>
 
-          <!-- 3 Big Colored Cards -->
+          <!-- Colored Cards Stack -->
           <div class="feedback-cards-stack">
+            <!-- 5-Dimension Rubric Evaluation Card -->
+            <article class="result-block block-dimensions" id="rubric-dimensions-card">
+              <div class="block-header">
+                <span class="block-badge blue-badge">📊 5-DIMENSION RUBRIC</span>
+                <span class="block-hint">Evidence-based coaching judgements (not hiring scores)</span>
+              </div>
+              <div class="dimensions-grid" id="rubric-dimensions-grid"></div>
+              <details class="rubric-legend">
+                <summary>How to read these coaching levels ℹ️</summary>
+                <div class="legend-body">
+                  <div class="legend-row"><span class="level-chip level-strong">Strong</span> Exceeds standard expectations with nuanced insights, structured rationale, or compelling concrete evidence.</div>
+                  <div class="legend-row"><span class="level-chip level-adequate">Adequate</span> Meets core expectations for the role and level; sound, relevant, and reasonable.</div>
+                  <div class="legend-row"><span class="level-chip level-developing">Developing</span> Partial attempt made, but lacks depth, precision, or clear structure.</div>
+                  <div class="legend-row"><span class="level-chip level-not-demonstrated">Not Demonstrated</span> No relevant evidence observed in the response.</div>
+                  <div class="legend-row"><span class="level-chip level-not-applicable">Not Applicable</span> Dimension does not apply to this specific question context.</div>
+                  <p class="legend-note"><em>These are constructive coaching judgements to guide deliberate practice, not validated hiring scores or employment cutoffs.</em></p>
+                </div>
+              </details>
+            </article>
+
             <!-- 1. What was good (Green Card) -->
             <article class="result-block block-good">
               <div class="block-header">
                 <span class="block-badge green-badge">✓ WHAT WORKED WELL</span>
-                <span class="block-hint">Strengths & impact points</span>
+                <span class="block-hint">Grounded in candidate answer evidence</span>
               </div>
               <ul id="feedback-good-list" class="block-list"></ul>
             </article>
@@ -545,16 +569,16 @@
             <article class="result-block block-missing">
               <div class="block-header">
                 <span class="block-badge orange-badge">! WHAT WAS MISSING</span>
-                <span class="block-hint">Omissions & level-up areas</span>
+                <span class="block-hint">Gaps & practical next steps</span>
               </div>
               <ul id="feedback-missing-list" class="block-list"></ul>
             </article>
 
-            <!-- 3. Stronger sample answer (Purple/Indigo Card) -->
+            <!-- 3. One possible stronger answer (Purple/Indigo Card) -->
             <article class="result-block block-sample">
               <div class="block-header">
-                <span class="block-badge purple-badge">🏆 GOLD STANDARD ANSWER</span>
-                <span class="block-hint">How a top-tier candidate responds</span>
+                <span class="block-badge purple-badge">💡 ONE POSSIBLE STRONGER ANSWER</span>
+                <span class="block-hint">Realistic approach calibrated for this role & level</span>
               </div>
               <div class="sample-answer-text" id="feedback-sample-answer"></div>
             </article>

@@ -41,8 +41,13 @@ export default async function handler(req, res) {
   try {
     const body = await parseBody(req);
     const role = String(body.role || "").trim();
+    const difficulty = String(body.difficulty || "Mid-Level").trim();
     const question = String(body.question || "").trim();
     const answer = String(body.answer || "").trim();
+    const followUpQuestion = String(body.followUpQuestion || "").trim();
+    const followUpAnswer = String(body.followUpAnswer || "").trim();
+    const sessionId = String(body.sessionId || "").trim();
+    const round = Number(body.round) || 1;
 
     if (!role || !question || !answer) {
       return sendResponse(res, 400, {
@@ -52,18 +57,21 @@ export default async function handler(req, res) {
 
     const feedback = await scoreFeedback({
       role,
-      difficulty: body.difficulty,
+      difficulty,
       question,
       answer,
-      followUpQuestion: body.followUpQuestion,
-      followUpAnswer: body.followUpAnswer,
+      followUpQuestion,
+      followUpAnswer,
+      sessionId,
+      round,
     });
     return sendResponse(res, 200, feedback);
   } catch (error) {
-    console.error("API /api/feedback error:", error);
-    const status = error.status || 500;
+    console.error("API /api/feedback error:", error.message || "Unknown error");
+    const status = error.status || 502;
     return sendResponse(res, status, {
-      error: error.message || "Failed to evaluate rubric feedback.",
+      error: "Evaluation service temporarily unavailable. Please click Retry to evaluate again.",
+      code: "EVALUATION_ERROR",
     });
   }
 }

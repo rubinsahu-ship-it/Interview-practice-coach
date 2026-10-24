@@ -30,6 +30,7 @@ const state = {
   streak: 0, // Continuous answer streak
   maxStreak: 0,
   history: [], // { question, answer, followUpQuestion, followUpAnswer, feedback, roundPoints }
+  awardedQuestions: new Set(),
   activeRecognition: null,
   activeMicBtn: null,
   activeBanner: null,
@@ -138,12 +139,17 @@ const followupDeleteAudioBtn = document.querySelector("#followup-delete-audio-bt
 const feedbackXpPill = document.querySelector("#feedback-xp-pill");
 const feedbackStreakPill = document.querySelector("#feedback-streak-pill");
 const feedbackRoundNum = document.querySelector("#feedback-round-num");
+const feedbackSubtitle = document.querySelector("#feedback-subtitle");
+const feedbackAssessabilityNotice = document.querySelector("#feedback-assessability-notice");
+const rubricDimensionsCard = document.querySelector("#rubric-dimensions-card");
+const rubricDimensionsGrid = document.querySelector("#rubric-dimensions-grid");
 const feedbackGoodList = document.querySelector("#feedback-good-list");
 const feedbackMissingList = document.querySelector("#feedback-missing-list");
 const feedbackSampleAnswer = document.querySelector("#feedback-sample-answer");
 const nextQuestionBtn = document.querySelector("#next-question-btn");
 const retryCurrentQuestionBtn = document.querySelector("#retry-current-question-btn");
 const endInterviewBtnFeedback = document.querySelector("#end-interview-btn-feedback");
+const skipFollowupBtn = document.querySelector("#skip-followup-btn");
 
 // Final Summary Screen
 const finalXpNumber = document.querySelector("#final-xp-number");
@@ -949,6 +955,7 @@ startInterviewBtn.addEventListener("click", async () => {
   state.streak = 0;
   state.maxStreak = 0;
   state.history = [];
+  state.awardedQuestions = new Set();
 
   setStatus("");
   setBusy(startInterviewBtn, true, "Starting Practice…");
@@ -981,6 +988,10 @@ async function renderQuestionScreen(qNum, questionText) {
   progressBarFill.style.width = `${progressPct}%`;
 
   questionHeading.textContent = questionText;
+  state.currentQuestion = questionText;
+  state.currentAnswer = "";
+  state.currentFollowUp = "";
+  state.currentFollowUpAnswer = "";
   mainAnswerInput.value = "";
   updateWordCounter(mainAnswerInput, mainWordCounter);
 
@@ -1073,12 +1084,15 @@ retryQuestionBtn.addEventListener("click", () => {
 // ==========================================================================
 // SCREEN 3 -> SCREEN 4: SUBMIT FOLLOW-UP -> REVEAL RESULT CARD
 // ==========================================================================
-submitFollowupBtn.addEventListener("click", async () => {
-  const followUpAnswer = followupAnswerInput.value.trim();
-  if (!followUpAnswer) {
-    setStatus("Please answer the follow-up question before continuing!", true);
-    followupAnswerInput.focus();
-    return;
+async function handleRoundEvaluation({ isSkippedFollowUp = false } = {}) {
+  let followUpAnswer = "";
+  if (!isSkippedFollowUp) {
+    followUpAnswer = followupAnswerInput.value.trim();
+    if (!followUpAnswer) {
+      setStatus("Please answer the follow-up question or click 'Skip Follow-Up'!", true);
+      followupAnswerInput.focus();
+      return;
+    }
   }
 
   stopActiveVoiceInput();
@@ -1087,9 +1101,12 @@ submitFollowupBtn.addEventListener("click", async () => {
 
   setStatus("");
   setBusy(submitFollowupBtn, true, "EVALUATING ROUND PERFORMANCE…");
+  if (skipFollowupBtn) setBusy(skipFollowupBtn, true, "EVALUATING…");
 
   try {
     const feedback = await requestJson("/api/feedback", {
+      sessionId: state.sessionId,
+      round: state.currentQuestionIndex + 1,
       role: state.role,
       difficulty: state.difficulty,
       question: state.currentQuestion,
@@ -1098,14 +1115,42 @@ submitFollowupBtn.addEventListener("click", async () => {
       followUpAnswer: state.currentFollowUpAnswer,
     });
 
-    // Gamification Scoring: Base XP + Effort Bonus
-    const totalWords = (state.currentAnswer + " " + state.currentFollowUpAnswer).trim().split(/\s+/).length;
-    const effortBonus = Math.min(50, Math.floor(totalWords / 3));
-    const roundPoints = 200 + effortBonus;
+    const isNonAnswer = feedback.assessability === "not_assessable";
+    let roundPoints = 0;
 
-    state.score += roundPoints;
-    state.streak++;
-    if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+    if (!isNonAnswer) {
+      const roundIdx = state.currentQuestionIndex;
+      const alreadyAwarded = state.awardedQuestions && state.awardedQuestions.has(roundIdx);
+
+      if (!alreadyAwarded) {
+        // Base XP: 150 for partial, 200 for substantive
+        const baseXP = feedback.assessability === "partially_assessable" ? 150 : 200;
+        let dimBonus = 0;
+        if (feedback.dimensions) {
+          for (const dim of Object.values(feedback.dimensions)) {
+            if (dim.score === "strong") dimBonus += 10;
+            else if (dim.score === "adequate") dimBonus += 5;
+          }
+        }
+        roundPoints = baseXP + Math.min(50, dimBonus);
+
+        state.score += roundPoints;
+        state.streak++;
+        if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+        if (!state.awardedQuestions) state.awardedQuestions = new Set();
+        state.awardedQuestions.add(roundIdx);
+
+        bumpStreak();
+        triggerConfetti();
+      } else {
+        // Already awarded previously for this round (prevent duplicate XP on repeated submissions)
+        roundPoints = 0;
+      }
+    } else {
+      // Non-assessable answer ("abcd", nonsense, etc.)
+      // Award NO completion XP or streak increment
+      roundPoints = 0;
+    }
 
     state.history.push({
       questionNumber: state.currentQuestionIndex + 1,
@@ -1117,15 +1162,17 @@ submitFollowupBtn.addEventListener("click", async () => {
       roundPoints,
     });
 
-    bumpStreak();
-    triggerConfetti();
     renderFeedbackScreen(feedback, roundPoints);
   } catch (error) {
-    setStatus(error.message, true);
+    setStatus(error.message || "Failed to evaluate round feedback. Please try again.", true);
   } finally {
     setBusy(submitFollowupBtn, false, "REVEAL FEEDBACK 💥");
+    if (skipFollowupBtn) setBusy(skipFollowupBtn, false, "Skip Follow-Up ➔");
   }
-});
+}
+
+submitFollowupBtn?.addEventListener("click", () => handleRoundEvaluation({ isSkippedFollowUp: false }));
+skipFollowupBtn?.addEventListener("click", () => handleRoundEvaluation({ isSkippedFollowUp: true }));
 
 function renderFeedbackScreen(feedback, roundPoints) {
   stopActiveVoiceInput();
@@ -1134,29 +1181,100 @@ function renderFeedbackScreen(feedback, roundPoints) {
 
   const qNum = state.currentQuestionIndex + 1;
   feedbackRoundNum.textContent = qNum;
-  feedbackXpPill.textContent = `+${roundPoints} XP EARNED`;
-  feedbackStreakPill.textContent = `🔥 STREAK: ${state.streak}`;
 
-  // 1. What was good (Green Card)
-  feedbackGoodList.replaceChildren(
-    ...(feedback.whatWasGood || []).map((text) => {
-      const li = document.createElement("li");
-      li.textContent = text;
-      return li;
-    })
-  );
+  const isNonAnswer = feedback.assessability === "not_assessable";
 
-  // 2. What was missing (Amber Card)
+  if (isNonAnswer) {
+    feedbackXpPill.textContent = "+0 XP (No assessable answer)";
+    feedbackXpPill.classList.add("pill-non-assessable");
+    feedbackStreakPill.textContent = `🔥 STREAK: ${state.streak}`;
+    if (feedbackAssessabilityNotice) {
+      feedbackAssessabilityNotice.textContent =
+        feedback.assessabilityReason || "No assessable answer yet. Please explain your approach.";
+      feedbackAssessabilityNotice.classList.remove("hidden");
+    }
+  } else {
+    feedbackXpPill.textContent = roundPoints > 0 ? `+${roundPoints} XP EARNED` : "+0 XP (Previously awarded)";
+    feedbackXpPill.classList.remove("pill-non-assessable");
+    feedbackStreakPill.textContent = `🔥 STREAK: ${state.streak}`;
+    if (feedbackAssessabilityNotice) {
+      feedbackAssessabilityNotice.classList.add("hidden");
+    }
+  }
+
+  // Render 5 Rubric Dimensions
+  if (rubricDimensionsGrid) {
+    const dims = feedback.dimensions || {};
+    rubricDimensionsGrid.replaceChildren(
+      ...Object.entries(dims).map(([key, dim]) => {
+        const card = document.createElement("div");
+        card.className = "dimension-card";
+
+        const scoreKey = String(dim.score || "developing").toLowerCase();
+        const scoreLabel = dim.label || scoreKey.replace(/_/g, " ");
+        const titleLabel = key
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+
+        card.innerHTML = `
+          <div class="dim-header">
+            <span class="dim-title">${escapeHtml(titleLabel)}</span>
+            <span class="level-chip level-${escapeHtml(scoreKey)}">${escapeHtml(scoreLabel.toUpperCase())}</span>
+          </div>
+          <p class="dim-feedback">${escapeHtml(dim.feedback || "Evaluated against role standards.")}</p>
+          ${dim.evidence ? `<div class="dim-evidence"><em>Evidence cited:</em> "${escapeHtml(dim.evidence)}"</div>` : ""}
+        `;
+        return card;
+      })
+    );
+  }
+
+  // 1. What was good (Green Card) - Grounded in candidate answer evidence
+  const goodItems = Array.isArray(feedback.whatWasGood) ? feedback.whatWasGood : [];
+  if (goodItems.length > 0) {
+    feedbackGoodList.replaceChildren(
+      ...goodItems.map((text) => {
+        const li = document.createElement("li");
+        li.textContent = text;
+        return li;
+      })
+    );
+  } else {
+    const emptyLi = document.createElement("li");
+    emptyLi.className = "empty-evidence-note";
+    emptyLi.textContent = isNonAnswer
+      ? "No assessable evidence demonstrated in this response."
+      : "No specific demonstrated strengths identified for this attempt.";
+    feedbackGoodList.replaceChildren(emptyLi);
+  }
+
+  // 2. What was missing (Amber Card) - Distinguishing missing detail from factual mistake + actionable next step
+  const missingItems = Array.isArray(feedback.whatWasMissing) ? feedback.whatWasMissing : [];
   feedbackMissingList.replaceChildren(
-    ...(feedback.whatWasMissing || []).map((text) => {
+    ...missingItems.map((item) => {
       const li = document.createElement("li");
-      li.textContent = text;
+      if (typeof item === "object" && item !== null) {
+        const isFactual = item.type === "factual_mistake";
+        const tag = isFactual ? "[Factual correction]" : "[Missing detail]";
+        const tagClass = isFactual ? "badge-factual-mistake" : "badge-missing-detail";
+        li.innerHTML = `
+          <span class="gap-type-badge ${tagClass}">${escapeHtml(tag)}</span>
+          <span class="gap-desc">${escapeHtml(item.gap)}</span>
+          ${item.nextStep ? `<div class="gap-next-step">➔ <strong>Next step:</strong> ${escapeHtml(item.nextStep)}</div>` : ""}
+        `;
+      } else {
+        li.textContent = String(item);
+      }
       return li;
     })
   );
 
-  // 3. Gold Standard Sample Answer (Purple Card)
-  feedbackSampleAnswer.textContent = feedback.strongerSampleAnswer || "Sample answer unavailable.";
+  // 3. One possible stronger answer (Purple Card)
+  feedbackSampleAnswer.textContent =
+    feedback.onePossibleStrongerAnswer ||
+    feedback.strongerSampleAnswer ||
+    "Sample answer unavailable.";
 
   if (state.currentQuestionIndex >= state.totalQuestions - 1) {
     nextQuestionBtn.innerHTML = `<span>FINISH CHALLENGE 🏆</span>`;
@@ -1174,8 +1292,13 @@ retryCurrentQuestionBtn.addEventListener("click", async () => {
   stopActiveAudioRecording();
   if (state.history.length > state.currentQuestionIndex) {
     const last = state.history.pop();
-    state.score = Math.max(0, state.score - (last?.roundPoints || 200));
-    state.streak = Math.max(0, state.streak - 1);
+    if (last && last.roundPoints > 0) {
+      state.score = Math.max(0, state.score - last.roundPoints);
+      state.streak = Math.max(0, state.streak - 1);
+    }
+  }
+  if (state.awardedQuestions) {
+    state.awardedQuestions.delete(state.currentQuestionIndex);
   }
   await renderQuestionScreen(state.currentQuestionIndex + 1, state.currentQuestion);
 });
@@ -1314,8 +1437,8 @@ async function renderFinalSummary(summary) {
             : ""
         }
 
-        <h4>Gold Standard Sample Answer</h4>
-        <p class="sample-answer-text">${escapeHtml(item.feedback?.strongerSampleAnswer || "")}</p>
+        <h4>One Possible Stronger Answer</h4>
+        <p class="sample-answer-text">${escapeHtml(item.feedback?.onePossibleStrongerAnswer || item.feedback?.strongerSampleAnswer || "")}</p>
       `;
 
       details.append(summaryTag, body);
@@ -1363,6 +1486,7 @@ restartInterviewBtn?.addEventListener("click", () => {
   state.score = 0;
   state.streak = 0;
   state.maxStreak = 0;
+  state.awardedQuestions = new Set();
   state.sessionId = "session_" + Date.now();
   showScreen(setupCard);
 });
